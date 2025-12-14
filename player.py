@@ -15,14 +15,12 @@ class Player(pygame.sprite.Sprite):
         self.image = self.tile_map_loader.get_tile(Tile.PLAYER_CHARACTER.value)
         self.rect = self.image.get_rect()
 
-        # FIX: Access the integer value for the SpriteSheet
         self.selector = self.tile_map_loader.get_tile(Tile.SELECTOR.value)
         self.selector_rect = self.selector.get_rect()
 
         self.facing_dir = (0, 0)  # (dx, dy) vector for targeting/movement
 
-        # --- Positioning (Uses GM) ---
-        # The Player is fixed to the center of the screen
+        # --- Positioning ---
         self.rect.centerx = GM.screen_width // 2
         self.rect.centery = GM.screen_height // 2
 
@@ -74,11 +72,9 @@ class Player(pygame.sprite.Sprite):
             target_grid_x, target_grid_y, screen_x, screen_y = selector_info
 
             target_tile_index = GM.current_level.get_tile_at(target_grid_x, target_grid_y)
-            print(target_tile_index)
             if target_tile_index in Tile.get_enemy_tiles():
                 surface.blit(self.get_colored_selector(self.COLOUR_RED), (screen_x, screen_y))
             elif target_tile_index in Tile.get_selectable_tiles():
-                print("Fountain found")
                 surface.blit(self.get_colored_selector(self.COLOUR_GREEN), (screen_x, screen_y))
             elif target_tile_index in Tile.get_walkable_tiles():
                 surface.blit(self.selector, (screen_x, screen_y))
@@ -86,17 +82,15 @@ class Player(pygame.sprite.Sprite):
     def perform_queued_action(self):
         """
         Executes the queued action based on self.facing_dir.
-        If the action is a move, it updates the player's grid position
-        after checking for collision against the current level terrain.
 
         Returns:
-            bool: True if a move/action was successfully executed, False otherwise.
+            False: Action blocked (no turn consumed).
+            True: Simple move action (triggers animation lock, no tile swap needed).
+            tuple: (pos_x, pos_y, final_tile_id) if an interaction/attack needs cleanup.
         """
-
         dx, dy = self.facing_dir
 
         if (dx, dy) == (0, 0):
-            print("Action blocked: No direction selected.")
             return False
 
         # --- Calculate Target Position ---
@@ -105,8 +99,22 @@ class Player(pygame.sprite.Sprite):
 
         target_tile_index = GM.current_level.get_tile_at(new_x, new_y)
 
-        # TODO: check for enemies or other selectable tiles BEFORE walkable ones
-        # Check for successful movement
+        # --- Check for INTERACTION (Door/Chest) or ATTACK (Enemy) ---
+        if target_tile_index in Tile.get_enemy_tiles() or target_tile_index in Tile.get_selectable_tiles():
+
+            animation_info = GM.current_level.process_action(new_x, new_y, target_tile_index)
+
+            if animation_info:
+                # Interaction succeeded (e.g., door animation started)
+                print(f"Player initiated action on tile ID {target_tile_index}.")
+                self.facing_dir = (0, 0)
+                # Returns the (x, y, final_id) tuple from Level.process_action
+                return animation_info
+            else:
+                # Action failed
+                return False
+
+        # --- Check for MOVEMENT ---
         if target_tile_index in Tile.get_walkable_tiles():
 
             # --- Successful Move ---
@@ -114,14 +122,15 @@ class Player(pygame.sprite.Sprite):
             self.grid_y = new_y
             print(f"Player moved to ({self.grid_x}, {self.grid_y}).")
 
-            # Reset facing_dir to clear the selector for the next turn
             self.facing_dir = (0, 0)
 
+            # Simple movement needs to lock the game for the visual travel time,
+            # but doesn't require a final tile ID swap.
             return True
 
-        # Handle blocked actions (e.g., walls, closed doors, out of bounds)
+            # --- Handle Blocked Actions ---
         else:
-            print(f"Action blocked: Tile ID {target_tile_index} is not walkable.")
+            print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
             return False
 
     def update(self):

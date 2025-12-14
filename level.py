@@ -67,6 +67,21 @@ class Level:
 
         return int(self.terrain_data[pos_y][pos_x])
 
+    def set_tile_at(self, pos_x, pos_y, new_tile_id):
+        """Sets the tile ID at the given grid coordinates."""
+        max_rows = len(self.terrain_data)
+        max_cols = len(self.terrain_data[0]) if max_rows > 0 else 0
+
+        if 0 <= pos_x < max_cols and 0 <= pos_y < max_rows:
+            # Update the stored map data (must be a string for consistency)
+            self.terrain_data[pos_y][pos_x] = str(new_tile_id)
+
+            # NOTE: For performance, a better solution is to only re-render the changed tile,
+            # but re-rendering the whole map is simpler for now.
+            self.level_surface = self.setup_level_surface()
+            return True
+        return False
+
     def draw(self, display_surface, offset_x=0, offset_y=0):
         """
         Draws the single, pre-rendered map surface to the display.
@@ -76,6 +91,44 @@ class Level:
         self.offset_y = offset_y
 
         display_surface.blit(self.level_surface, (offset_x, offset_y))
+
+    # --- ACTIONS ---
+    def _open_door_small(self, pos_x, pos_y):
+        """
+        Initiates the door opening sequence.
+
+        Returns: Tuple (pos_x, pos_y, final_tile_id) needed by GM for cleanup.
+        """
+
+        intermediate_id = Tile.DOOR_SMALL_OPENING.value
+
+        if self.set_tile_at(pos_x, pos_y, intermediate_id):
+            print(f"Door at ({pos_x}, {pos_y}) starting animation.")
+
+            final_id = Tile.DOOR_SMALL_OPENED.value
+
+            # Return the required animation cleanup data: (x, y, final_id)
+            return pos_x, pos_y, final_id
+
+        return False  # Door could not be opened
+
+    def process_action(self, pos_x, pos_y, tile_id):
+        """
+        Handles player interaction or attack at the given tile position.
+
+        Returns:
+            bool: False if no action was taken (no lock required).
+            tuple: (pos_x, pos_y, final_tile_id) if an action was taken that requires
+                   a locked animation delay before the final state is set.
+        """
+        # --- Handle doors ---
+        if tile_id == Tile.DOOR_SMALL_CLOSED.value:
+            # We now call the internal method
+            return self._open_door_small(pos_x, pos_y)
+
+        # NOTE: Add other interactions here (e.g., chest opening, enemy attack)
+
+        return False  # Action failed or was not found
 
 
 levels = {

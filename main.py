@@ -45,35 +45,38 @@ GM.current_level = Level(
 GM.player = Player(TILE_MAP_LOADER)
 GM.player.set_grid_pos(8, 6)  # Initial player position
 
-# Create the sprite group using the GM's player instance
 player_group = pygame.sprite.GroupSingle(GM.player)
 
 # --- Game Loop ---
 while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
+    if GM.is_locked:
+        GM.resolve_animations()
+    else:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
 
-        if event.type == pygame.KEYDOWN:
-            # --- Handle Targeting/Facing Direction ---
-            if event.key == pygame.K_UP or event.key == pygame.K_w:
-                dx, dy = 0, -1
-                GM.player.facing_dir = (dx, dy)
-            elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                dx, dy = 0, 1
-                GM.player.facing_dir = (dx, dy)
-            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                dx, dy = -1, 0
-                GM.player.facing_dir = (dx, dy)
-            elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                dx, dy = 1, 0
-                GM.player.facing_dir = (dx, dy)
+            if event.type == pygame.KEYDOWN:
+                # --- Handle Targeting/Facing Direction ---
+                if event.key == pygame.K_UP or event.key == pygame.K_w:
+                    dx, dy = 0, -1
+                    GM.player.facing_dir = (dx, dy)
+                elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    dx, dy = 0, 1
+                    GM.player.facing_dir = (dx, dy)
+                elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                    dx, dy = -1, 0
+                    GM.player.facing_dir = (dx, dy)
+                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    dx, dy = 1, 0
+                    GM.player.facing_dir = (dx, dy)
 
-            # --- Handle Movement ---
-            if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                if GM.player.perform_queued_action():
-                    GM.handle_turn()
+                # --- Handle Interactions ---
+                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    action_success = GM.player.perform_queued_action()
+                    if action_success:
+                        GM.lock_game_and_start_animations()
 
     # --- Drawing ---
     screen.fill(BG_COLOR)
@@ -82,7 +85,7 @@ while True:
     player_pixel_x = GM.player.grid_x * GM.render_tile_size
     player_pixel_y = GM.player.grid_y * GM.render_tile_size
 
-    # The offset calculation remains correct for centering
+    # The offset calculation
     offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
     offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
 

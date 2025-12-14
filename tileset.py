@@ -129,9 +129,9 @@ class Tile(Enum):
     def get_selectable_tiles():
         """Returns a set of integer indices for all tiles the player can interact with but not walk on."""
         return {
-            Tile.DOOR_LEFT_OPENED.value,
-            Tile.DOOR_RIGHT_OPENED.value,
-            Tile.DOOR_SMALL_OPENED.value,
+            Tile.DOOR_LEFT_CLOSED.value,
+            Tile.DOOR_RIGHT_CLOSED.value,
+            Tile.DOOR_SMALL_CLOSED.value,
             Tile.CHEST_CLOSED.value,
             Tile.FOUNTAIN_BOTTOM_OFF.value,
             Tile.FOUNTAIN_BOTTOM_OFF_GRATE.value,
