@@ -1,10 +1,12 @@
 import pygame
 from tileset import Tile
-from game_manager import GM  # <--- ESSENTIAL: Import the global manager
+from game_manager import GM
 
 
 class Player(pygame.sprite.Sprite):
-    # FIX: Only need tile_map_loader, everything else comes from GM
+    COLOUR_GREEN = (0, 200, 0, 255)
+    COLOUR_RED = (200, 0, 0, 255)
+
     def __init__(self, tile_map_loader):
         super().__init__()
         self.tile_map_loader = tile_map_loader
@@ -50,15 +52,17 @@ class Player(pygame.sprite.Sprite):
         target_grid_x = current_x + dir_x
         target_grid_y = current_y + dir_y
 
-        target_tile_index = GM.current_level.get_tile_at(target_grid_x, target_grid_y)
+        selector_screen_x = self.rect.x + (dir_x * GM.render_tile_size)
+        selector_screen_y = self.rect.y + (dir_y * GM.render_tile_size)
 
-        if target_tile_index in Tile.get_walkable_tiles():  # change to get_selectable_tiles() later
-            selector_screen_x = self.rect.x + (dir_x * GM.render_tile_size)
-            selector_screen_y = self.rect.y + (dir_y * GM.render_tile_size)
+        return target_grid_x, target_grid_y, selector_screen_x, selector_screen_y
 
-            return target_grid_x, target_grid_y, selector_screen_x, selector_screen_y
-
-        return None
+    def get_colored_selector(self, colour):
+        """Creates a temporary, colored version of the selector sprite."""
+        # NOTE: its probably more efficient to just store these copies somewhere
+        colored_selector = self.selector.copy()
+        colored_selector.fill(colour, special_flags=pygame.BLEND_MULT)
+        return colored_selector
 
     def draw_selector(self, surface):
         """
@@ -67,8 +71,58 @@ class Player(pygame.sprite.Sprite):
         selector_info = self.get_selector_position()
 
         if selector_info:
-            _, _, screen_x, screen_y = selector_info
-            surface.blit(self.selector, (screen_x, screen_y))
+            target_grid_x, target_grid_y, screen_x, screen_y = selector_info
+
+            target_tile_index = GM.current_level.get_tile_at(target_grid_x, target_grid_y)
+            print(target_tile_index)
+            if target_tile_index in Tile.get_enemy_tiles():
+                surface.blit(self.get_colored_selector(self.COLOUR_RED), (screen_x, screen_y))
+            elif target_tile_index in Tile.get_selectable_tiles():
+                print("Fountain found")
+                surface.blit(self.get_colored_selector(self.COLOUR_GREEN), (screen_x, screen_y))
+            elif target_tile_index in Tile.get_walkable_tiles():
+                surface.blit(self.selector, (screen_x, screen_y))
+
+    def perform_queued_action(self):
+        """
+        Executes the queued action based on self.facing_dir.
+        If the action is a move, it updates the player's grid position
+        after checking for collision against the current level terrain.
+
+        Returns:
+            bool: True if a move/action was successfully executed, False otherwise.
+        """
+
+        dx, dy = self.facing_dir
+
+        if (dx, dy) == (0, 0):
+            print("Action blocked: No direction selected.")
+            return False
+
+        # --- Calculate Target Position ---
+        new_x = self.grid_x + dx
+        new_y = self.grid_y + dy
+
+        target_tile_index = GM.current_level.get_tile_at(new_x, new_y)
+
+        # TODO: check for enemies or other selectable tiles BEFORE walkable ones
+        # Check for successful movement
+        if target_tile_index in Tile.get_walkable_tiles():
+
+            # --- Successful Move ---
+            self.grid_x = new_x
+            self.grid_y = new_y
+            print(f"Player moved to ({self.grid_x}, {self.grid_y}).")
+
+            # Reset facing_dir to clear the selector for the next turn
+            self.facing_dir = (0, 0)
+
+            return True
+
+        # Handle blocked actions (e.g., walls, closed doors, out of bounds)
+        else:
+            print(f"Action blocked: Tile ID {target_tile_index} is not walkable.")
+            return False
 
     def update(self):
         """

@@ -62,6 +62,11 @@ class Tile(Enum):
     GROUND_STONES = 42
     GROUND_SPIKES = 41
 
+    GROUND_SHADOW_TOP = 50
+    GROUND_SPECKLED_SHADOW_TOP = 51
+    GROUND_SHADOW_CORNER_LEFT = 52
+    GROUND_SHADOW_CORNER_RIGHT = 53
+
     # Misc
     CHEST_CLOSED = 89
     CHEST_OPENING = 90
@@ -110,10 +115,44 @@ class Tile(Enum):
             Tile.GROUND_SPECKLED.value,
             Tile.GROUND_STONES.value,
             Tile.GROUND_SPIKES.value,
+            Tile.GROUND_SHADOW_TOP.value,
+            Tile.GROUND_SPECKLED_SHADOW_TOP.value,
+            Tile.GROUND_SHADOW_CORNER_LEFT.value,
+            Tile.GROUND_SHADOW_CORNER_RIGHT.value,
             Tile.WIDE_STAIR_LEFT.value,
             Tile.WIDE_STAIR_MID.value,
             Tile.WIDE_STAIR_RIGHT.value,
             Tile.THIN_STAIR.value,
+        }
+
+    @staticmethod
+    def get_selectable_tiles():
+        """Returns a set of integer indices for all tiles the player can interact with but not walk on."""
+        return {
+            Tile.DOOR_LEFT_OPENED.value,
+            Tile.DOOR_RIGHT_OPENED.value,
+            Tile.DOOR_SMALL_OPENED.value,
+            Tile.CHEST_CLOSED.value,
+            Tile.FOUNTAIN_BOTTOM_OFF.value,
+            Tile.FOUNTAIN_BOTTOM_OFF_GRATE.value,
+            Tile.FOUNTAIN_BOTTOM_ON.value,
+            Tile.FOUNTAIN_BOTTOM_ON_GRATE.value
+        }
+
+    @staticmethod
+    def get_enemy_tiles():
+        """Returns a set of integer indices for all tiles the player can attack."""
+        return {
+            Tile.GHOST_SMALL.value,
+            Tile.GHOST_LARGE.value,
+            Tile.CYCLOPS.value,
+            Tile.CRAB.value,
+            Tile.SORCERER.value,
+            Tile.BAT.value,
+            Tile.SPIDER.value,
+            Tile.RAT_BROWN,
+            Tile.RAT_GREY,
+            Tile.DWARF
         }
 
 

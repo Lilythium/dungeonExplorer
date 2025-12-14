@@ -22,7 +22,11 @@ class GameManager:
             # Add other global objects like EnemyHandler, UIController here later
         return cls._instance
 
+    def handle_turn(self):
+        """
+        Processes a full game turn: Player action, then Entity actions.
+        This is typically called after the player confirms a move or attack.
+        """
 
-# Create a globally accessible instance of the Manager
-# All other modules will import this "GM" instance.
+
 GM = GameManager()

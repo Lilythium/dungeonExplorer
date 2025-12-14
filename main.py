@@ -57,24 +57,23 @@ while True:
 
         if event.type == pygame.KEYDOWN:
             # --- Handle Targeting/Facing Direction ---
-            # Set the player's facing direction immediately on key press
-            dx, dy = 0, 0
-
             if event.key == pygame.K_UP or event.key == pygame.K_w:
                 dx, dy = 0, -1
+                GM.player.facing_dir = (dx, dy)
             elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
                 dx, dy = 0, 1
+                GM.player.facing_dir = (dx, dy)
             elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
                 dx, dy = -1, 0
+                GM.player.facing_dir = (dx, dy)
             elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
                 dx, dy = 1, 0
-
-            GM.player.facing_dir = (dx, dy)
-            print(GM.player.facing_dir)
+                GM.player.facing_dir = (dx, dy)
 
             # --- Handle Movement ---
             if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                GM.player.move()
+                if GM.player.perform_queued_action():
+                    GM.handle_turn()
 
     # --- Drawing ---
     screen.fill(BG_COLOR)
