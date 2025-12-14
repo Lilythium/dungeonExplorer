@@ -100,6 +100,22 @@ class Tile(Enum):
     DANGER_INDICATOR = 61
     ATTACK_INDICATOR = 62
 
+    # --- Static Sets ---
+
+    @staticmethod
+    def get_walkable_tiles():
+        """Returns a set of integer indices for all tiles the player can walk onto."""
+        return {
+            Tile.GROUND.value,
+            Tile.GROUND_SPECKLED.value,
+            Tile.GROUND_STONES.value,
+            Tile.GROUND_SPIKES.value,
+            Tile.WIDE_STAIR_LEFT.value,
+            Tile.WIDE_STAIR_MID.value,
+            Tile.WIDE_STAIR_RIGHT.value,
+            Tile.THIN_STAIR.value,
+        }
+
 
 def tile(_tile):
     return str(_tile.value)

@@ -2,9 +2,13 @@ from sys import exit
 
 import pygame
 
+# --- Game Manager Integration ---
+# Assume game_manager.py exists and defines the global GM instance
+from game_manager import GM
+
 from level import Level, levels
 from sprites import SpriteSheet
-from tileset import Tile
+from player import Player
 
 # --- Constants ---
 TILE_SIZE = 16
@@ -21,18 +25,28 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Dungeon Explorer')
 clock = pygame.time.Clock()
 
+# --- POPULATE GLOBAL MANAGER ---
+GM.render_tile_size = RENDER_TILE_SIZE
+GM.screen_width = SCREEN_WIDTH
+GM.screen_height = SCREEN_HEIGHT
+
 # --- SPRITE SETUP ---
 TILE_MAP_LOADER = SpriteSheet("graphics/tilemap_packed.png", TILE_SIZE, TILE_SIZE, SCALING_FACTOR)
-player_sprite = TILE_MAP_LOADER.get_tile(Tile.PLAYER_CHARACTER.value)
-wall_sprite = TILE_MAP_LOADER.get_tile(Tile.INTERNAL_WALL_0.value)
-ground_sprite = TILE_MAP_LOADER.get_tile(Tile.GROUND.value)
 
-# --- LEVEL SETUP ---
-current_level = Level(
+# --- PLAYER & LEVEL SETUP ---
+
+# Instantiate Level and store it in GM
+GM.current_level = Level(
     levels['test'],
-    screen,
     TILE_MAP_LOADER
 )
+
+# Instantiate Player and store it in GM
+GM.player = Player(TILE_MAP_LOADER)
+GM.player.set_grid_pos(8, 6)  # Initial player position
+
+# Create the sprite group using the GM's player instance
+player_group = pygame.sprite.GroupSingle(GM.player)
 
 # --- Game Loop ---
 while True:
@@ -41,10 +55,46 @@ while True:
             pygame.quit()
             exit()
 
+        if event.type == pygame.KEYDOWN:
+            # --- Handle Targeting/Facing Direction ---
+            # Set the player's facing direction immediately on key press
+            dx, dy = 0, 0
+
+            if event.key == pygame.K_UP or event.key == pygame.K_w:
+                dx, dy = 0, -1
+            elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                dx, dy = 0, 1
+            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                dx, dy = -1, 0
+            elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                dx, dy = 1, 0
+
+            GM.player.facing_dir = (dx, dy)
+            print(GM.player.facing_dir)
+
+            # --- Handle Movement ---
+            if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                GM.player.move()
+
     # --- Drawing ---
     screen.fill(BG_COLOR)
 
-    current_level.draw()
+    # Use GM.player to calculate offset
+    player_pixel_x = GM.player.grid_x * GM.render_tile_size
+    player_pixel_y = GM.player.grid_y * GM.render_tile_size
+
+    # The offset calculation remains correct for centering
+    offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
+    offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
+
+    # Draw Level
+    GM.current_level.draw(screen, offset_x, offset_y)
+
+    # Draw Player
+    player_group.draw(screen)
+
+    # Draw Selector (This uses the facing_dir set above)
+    GM.player.draw_selector(screen)
 
     # --- Update ---
     pygame.display.update()
