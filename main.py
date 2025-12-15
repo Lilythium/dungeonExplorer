@@ -2,10 +2,10 @@ from sys import exit
 
 import pygame
 
-from game_manager import GM
-from level import Level, levels
-from player import Player
-from sprites import SpriteSheet
+from scripts.game_manager import GM
+from scripts.level import Level, levels
+from scripts.player import Player
+from scripts.sprites import SpriteSheet
 
 # --- Constants ---
 TILE_SIZE = 16
