@@ -1,9 +1,6 @@
 from sys import exit
 
 import pygame
-
-# --- Game Manager Integration ---
-# Assume game_manager.py exists and defines the global GM instance
 from game_manager import GM
 
 from level import Level, levels
@@ -75,8 +72,6 @@ while True:
                 # --- Handle Interactions ---
                 if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     action_success = GM.player.perform_queued_action()
-                    if action_success:
-                        GM.lock_game_and_start_animations()
 
     # --- Drawing ---
     screen.fill(BG_COLOR)
