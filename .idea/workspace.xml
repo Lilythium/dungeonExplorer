@@ -5,17 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2ad1ed3c-1420-4e84-96c1-423d4b2aabb2" name="Changes" comment="Initial commit">
-      <change afterPath="$PROJECT_DIR$/scripts/entity_actions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scripts/level_actions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/animation.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/animation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/game_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/level.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/player.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/player.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sprites.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/sprites.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/support.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/support.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tileset.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/tileset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/animation.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/animation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/entity_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entity_actions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/level.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/level_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level_actions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/player.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/player.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,9 +28,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="36oJINsjYU2I3KO4E1DZUKn0kVK" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -49,7 +45,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/samue/Documents/Python Scripts/dungeonExplorer/scripts/main.py"
+    "last_opened_file_path": "C:/Users/samue/Documents/Python Scripts/dungeonExplorer/main.py"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -76,7 +72,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/main.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />

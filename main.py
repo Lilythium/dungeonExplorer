@@ -41,7 +41,6 @@ GM.current_level = Level(
 # Instantiate Player and store it in GM
 GM.player = Player(TILE_MAP_LOADER)
 GM.player.set_grid_pos(8, 6)  # Initial player position
-
 GM.player.sync_visual_offset()
 
 # Set initial camera position to center on player

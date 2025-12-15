@@ -3,6 +3,7 @@ Handles all level-based actions and animations like doors, chests, fountains, et
 """
 from scripts.animation import FrameSequenceAnimation
 from scripts.tileset import Tile
+from scripts.game_manager import GM
 
 
 class LevelActions:
@@ -20,7 +21,6 @@ class LevelActions:
 
     def open_door_small(self, pos_x, pos_y):
         """Opens a small door with animation."""
-        from game_manager import GM
 
         frame_sequence = [
             Tile.DOOR_SMALL_CLOSED.value,
@@ -50,7 +50,6 @@ class LevelActions:
 
     def open_door_left(self, pos_x, pos_y, doRecurse=True):
         """Opens a left door with animation."""
-        from game_manager import GM
 
         if doRecurse:
             self.open_door_right(pos_x + 1, pos_y, False)
@@ -83,7 +82,6 @@ class LevelActions:
 
     def open_door_right(self, pos_x, pos_y, doRecurse=True):
         """Opens a right door with animation."""
-        from game_manager import GM
 
         if doRecurse:
             self.open_door_right(pos_x - 1, pos_y, False)
@@ -116,7 +114,6 @@ class LevelActions:
 
     def open_chest(self, pos_x, pos_y):
         """Opens a chest with animation."""
-        from game_manager import GM
         # TODO: add chance to replace opened chess with mimic instead
         frame_sequence = [
             Tile.CHEST_CLOSED.value,
@@ -148,12 +145,6 @@ class LevelActions:
 
     def activate_fountain(self, pos_x, pos_y, tile_id):
         """Toggles fountain on/off with animation (both top and bottom)."""
-        from game_manager import GM
-
-        # Determine current state and target state for BOTTOM and TOP
-        bottom_frame_sequence = None
-        top_frame_sequence = None
-        action = None
 
         if tile_id == Tile.FOUNTAIN_BOTTOM_OFF.value:
             bottom_frame_sequence = [

@@ -1,4 +1,3 @@
-# animation.py
 from enum import Enum
 from typing import Any, Callable, Optional
 
@@ -153,7 +152,7 @@ class InterpolationAnimation(Animation):
             # Get eased progress
             progress = self.get_progress()
             eased_progress = self.easing_function(progress)
-
+        print(f"Start {self.property_name}: {self.start_value}")
         # Calculate and set the new value
         if self.is_tuple:
             new_value = tuple(
@@ -162,6 +161,8 @@ class InterpolationAnimation(Animation):
             )
         else:
             new_value = self.lerp(self.start_value, self.end_value, eased_progress)
+
+        print(f"End {self.property_name}: {new_value}")
 
         setattr(self.target_object, self.property_name, new_value)
 

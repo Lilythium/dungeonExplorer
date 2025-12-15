@@ -123,7 +123,7 @@ class Level:
             start_value=start_offset_x,
             end_value=target_offset_x,
             duration_frames=duration_frames,
-            easing_function=InterpolationAnimation.linear_ease
+            easing_function=InterpolationAnimation.ease_in_out_quad
         )
 
         # Create interpolation animation for offset_y
@@ -133,7 +133,7 @@ class Level:
             start_value=start_offset_y,
             end_value=target_offset_y,
             duration_frames=duration_frames,
-            easing_function=InterpolationAnimation.linear_ease
+            easing_function=InterpolationAnimation.ease_in_out_quad
         )
 
         # Add both animations

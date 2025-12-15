@@ -14,6 +14,7 @@ class Player(pygame.sprite.Sprite):
 
         # --- Sprite Setup ---
         self.image = self.tile_map_loader.get_tile(Tile.PLAYER_CHARACTER.value)
+        self.original_image = self.image.copy()
         self.rect = self.image.get_rect()
 
         self.selector = self.tile_map_loader.get_tile(Tile.SELECTOR.value)
@@ -33,7 +34,8 @@ class Player(pygame.sprite.Sprite):
         # These properties will be animated by EntityActions.move_entity
         self.offset_x_visual = float(self.grid_x)
         self.offset_y_visual = float(self.grid_y)
-
+        self.squash_x = 1.0
+        self.squash_y = 1.0
         self.is_moving = False
 
     def get_grid_pos(self):
@@ -44,8 +46,8 @@ class Player(pygame.sprite.Sprite):
         """Sets the player's starting position in the map grid."""
         self.grid_x = x
         self.grid_y = y
-        if not self.is_moving:
-            self.sync_visual_offset()
+        self.offset_x_visual = float(x)
+        self.offset_y_visual = float(y)
 
     def sync_visual_offset(self):
         """
@@ -140,10 +142,15 @@ class Player(pygame.sprite.Sprite):
 
             from scripts.entity_actions import EntityActions
             entity_actions = EntityActions()
-            entity_actions.move_player(self, new_x, new_y, duration_frames=12)
-            entity_actions.move_entity(self, new_x, new_y, duration_frames=12)
+            entity_actions.move_player(self, new_x, new_y, duration_frames=10)
+            self.is_moving = True
+            if self.facing_dir[0] != 0:
+                self.squash_y = 1.1
+                self.squash_x = 0.9
+            else:
+                self.squash_x = 1.1
+                self.squash_y = 0.9
             self.facing_dir = (0, 0)
-
             return True
 
             # --- Handle Blocked Actions ---
@@ -153,15 +160,21 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         """
-        Calculates the sprite's visual slide during movement animation and updates its rect.
-        The player is drawn at the screen center PLUS the visual slide offset.
+        Player stays centered - camera movement handles positioning.
         """
-
         center_x = GM.screen_width // 2
         center_y = GM.screen_height // 2
 
-        slide_offset_x = (self.offset_x_visual - self.grid_x) * GM.render_tile_size
-        slide_offset_y = (self.offset_y_visual - self.grid_y) * GM.render_tile_size
+        # Apply squash & stretch if moving
+        if self.is_moving and (self.squash_x != 1.0 or self.squash_y != 1.0):
+            new_width = int(self.original_image.get_width() * self.squash_x)
+            new_height = int(self.original_image.get_height() * self.squash_y)
+            self.image = pygame.transform.scale(self.original_image, (new_width, new_height))
+        elif not self.is_moving:
+            # Reset to original image when not moving
+            self.image = self.original_image.copy()
 
-        self.rect.centerx = center_x + round(slide_offset_x)
-        self.rect.centery = center_y + round(slide_offset_y)
+        # Keep player centered
+        self.rect = self.image.get_rect()
+        self.rect.centerx = center_x
+        self.rect.centery = center_y
