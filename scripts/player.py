@@ -1,6 +1,7 @@
 import pygame
-from tileset import Tile
+
 from game_manager import GM
+from tileset import Tile
 
 
 class Player(pygame.sprite.Sprite):
@@ -28,6 +29,13 @@ class Player(pygame.sprite.Sprite):
         self.grid_x = 0
         self.grid_y = 0
 
+        # --- Visual Animation State ---
+        # These properties will be animated by EntityActions.move_entity
+        self.offset_x_visual = float(self.grid_x)
+        self.offset_y_visual = float(self.grid_y)
+
+        self.is_moving = False
+
     def get_grid_pos(self):
         """Returns the player's position in the map grid."""
         return self.grid_x, self.grid_y
@@ -36,6 +44,16 @@ class Player(pygame.sprite.Sprite):
         """Sets the player's starting position in the map grid."""
         self.grid_x = x
         self.grid_y = y
+        if not self.is_moving:
+            self.sync_visual_offset()
+
+    def sync_visual_offset(self):
+        """
+        Ensures the visual offset is set to the current logical grid position.
+        Called on startup or after a non-animated teleport.
+        """
+        self.offset_x_visual = float(self.grid_x)
+        self.offset_y_visual = float(self.grid_y)
 
     def get_selector_position(self):
         """
@@ -118,14 +136,14 @@ class Player(pygame.sprite.Sprite):
         if target_tile_index in Tile.get_walkable_tiles():
 
             # --- Successful Move ---
-            self.grid_x = new_x
-            self.grid_y = new_y
-            print(f"Player moved to ({self.grid_x}, {self.grid_y}).")
+            print(f"Player moved to ({new_x}, {new_y}).")
 
+            from scripts.entity_actions import EntityActions
+            entity_actions = EntityActions()
+            entity_actions.move_player(self, new_x, new_y, duration_frames=12)
+            entity_actions.move_entity(self, new_x, new_y, duration_frames=12)
             self.facing_dir = (0, 0)
 
-            # Simple movement needs to lock the game for the visual travel time,
-            # but doesn't require a final tile ID swap.
             return True
 
             # --- Handle Blocked Actions ---
@@ -135,7 +153,16 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         """
-        Since the player is always fixed in the center, this method
-        might be used later for animation or input handling.
+        Calculates the sprite's visual slide during movement animation and updates its rect.
+        The player is drawn at the screen center PLUS the visual slide offset.
         """
-        pass
+        from game_manager import GM
+
+        center_x = GM.screen_width // 2
+        center_y = GM.screen_height // 2
+
+        slide_offset_x = (self.offset_x_visual - self.grid_x) * GM.render_tile_size
+        slide_offset_y = (self.offset_y_visual - self.grid_y) * GM.render_tile_size
+
+        self.rect.centerx = center_x + round(slide_offset_x)
+        self.rect.centery = center_y + round(slide_offset_y)

@@ -31,6 +31,12 @@ class GameManager:
         """Returns whether the game is locked due to active animations."""
         return self.animation_manager.is_locked
 
+    @is_locked.setter
+    def is_locked(self, value):
+        """Allows external code (like EntityActions) to set the lock state."""
+        # Setter writes directly to the AnimationManager's attribute
+        self.animation_manager.is_locked = bool(value)
+
     def add_animation(self, animation: Animation):
         """Add an animation to the manager."""
         self.animation_manager.add_animation(animation)

@@ -147,22 +147,23 @@ class InterpolationAnimation(Animation):
     def update(self) -> bool:
         """Updates the interpolation and sets the new value on the target object."""
         still_running = super().update()
-
-        if not self.is_complete:
+        if self.is_complete:
+            eased_progress = 1.0
+        else:
             # Get eased progress
             progress = self.get_progress()
             eased_progress = self.easing_function(progress)
 
-            # Calculate and set the new value
-            if self.is_tuple:
-                new_value = tuple(
-                    self.lerp(self.start_value[i], self.end_value[i], eased_progress)
-                    for i in range(len(self.start_value))
-                )
-            else:
-                new_value = self.lerp(self.start_value, self.end_value, eased_progress)
+        # Calculate and set the new value
+        if self.is_tuple:
+            new_value = tuple(
+                self.lerp(self.start_value[i], self.end_value[i], eased_progress)
+                for i in range(len(self.start_value))
+            )
+        else:
+            new_value = self.lerp(self.start_value, self.end_value, eased_progress)
 
-            setattr(self.target_object, self.property_name, new_value)
+        setattr(self.target_object, self.property_name, new_value)
 
         return still_running
 

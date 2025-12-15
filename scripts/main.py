@@ -1,11 +1,11 @@
 from sys import exit
 
 import pygame
-from game_manager import GM
 
+from game_manager import GM
 from level import Level, levels
-from sprites import SpriteSheet
 from player import Player
+from sprites import SpriteSheet
 
 # --- Constants ---
 TILE_SIZE = 16
@@ -42,6 +42,15 @@ GM.current_level = Level(
 GM.player = Player(TILE_MAP_LOADER)
 GM.player.set_grid_pos(8, 6)  # Initial player position
 
+GM.player.sync_visual_offset()
+
+# Set initial camera position to center on player
+player_pixel_x = GM.player.grid_x * GM.render_tile_size
+player_pixel_y = GM.player.grid_y * GM.render_tile_size
+initial_offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
+initial_offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
+GM.current_level.set_initial_camera_position(initial_offset_x, initial_offset_y)
+
 player_group = pygame.sprite.GroupSingle(GM.player)
 
 # --- Game Loop ---
@@ -71,26 +80,26 @@ while True:
 
                 # --- Handle Interactions ---
                 if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    # Store position BEFORE action
+                    old_pos = (GM.player.grid_x, GM.player.grid_y)
+
                     action_success = GM.player.perform_queued_action()
 
+                    # Check if player actually moved
+                    new_pos = (GM.player.grid_x, GM.player.grid_y)
+
+    # --- Update ---
+    player_group.update()
     # --- Drawing ---
     screen.fill(BG_COLOR)
 
-    # Use GM.player to calculate offset
-    player_pixel_x = GM.player.grid_x * GM.render_tile_size
-    player_pixel_y = GM.player.grid_y * GM.render_tile_size
-
-    # The offset calculation
-    offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
-    offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
-
-    # Draw Level
-    GM.current_level.draw(screen, offset_x, offset_y)
+    # Draw Level (it will use its own animated offset values)
+    GM.current_level.draw(screen)
 
     # Draw Player
     player_group.draw(screen)
 
-    # Draw Selector (This uses the facing_dir set above)
+    # Draw Selector
     GM.player.draw_selector(screen)
 
     # --- Update ---
