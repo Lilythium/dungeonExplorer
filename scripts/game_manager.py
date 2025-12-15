@@ -1,4 +1,4 @@
-from animation import AnimationManager, Animation
+from scripts.animation import AnimationManager, Animation
 
 
 class GameManager:

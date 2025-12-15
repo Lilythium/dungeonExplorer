@@ -1,5 +1,9 @@
-from animation import FrameSequenceAnimation
+import pygame
+from scripts.animation import FrameSequenceAnimation, InterpolationAnimation
+from scripts.game_manager import GM
 from scripts.level_actions import LevelActions
+from scripts.support import import_csv_layout
+from scripts.tileset import Tile
 
 levels = {
     'test': {
@@ -14,7 +18,6 @@ class Level:
         self.target_offset_y = None
         self.target_offset_x = None
         self.tile_map_loader = tile_map_loader
-        from support import import_csv_layout
         self.terrain_data = import_csv_layout(level_data['terrain'])
 
         # Track animated tiles - MUST be initialized before setup_level_surface()
@@ -29,11 +32,9 @@ class Level:
 
     def setup_level_surface(self):
         """Creates a single, large Pygame Surface containing all terrain tiles."""
-        import pygame
         if not self.terrain_data:
             return pygame.Surface((0, 0))
 
-        from tileset import Tile
         sample_sprite = self.tile_map_loader.get_tile(Tile.GROUND.value)
         tile_width = sample_sprite.get_width()
         tile_height = sample_sprite.get_height()
@@ -67,10 +68,8 @@ class Level:
         max_cols = len(self.terrain_data[0]) if max_rows > 0 else 0
 
         if not (0 <= pos_x < max_cols):
-            from tileset import Tile
             return Tile.EMPTY.value
         if not (0 <= pos_y < max_rows):
-            from tileset import Tile
             return Tile.EMPTY.value
 
         return int(self.terrain_data[pos_y][pos_x])
@@ -105,8 +104,6 @@ class Level:
             target_offset_y: Target Y offset
             duration_frames: Animation duration (defaults to GM.ANIMATION_DELAY_FRAMES)
         """
-        from game_manager import GM
-        from animation import InterpolationAnimation
 
         if duration_frames is None:
             duration_frames = GM.ANIMATION_DELAY_FRAMES
@@ -160,7 +157,6 @@ class Level:
         Handles player interaction or attack at the given tile position.
         Delegates to the appropriate action handler.
         """
-        from tileset import Tile
 
         # Route to appropriate action handler
         if tile_id == Tile.DOOR_SMALL_CLOSED.value:

@@ -1,7 +1,7 @@
 import pygame
 
-from game_manager import GM
-from tileset import Tile
+from scripts.game_manager import GM
+from scripts.tileset import Tile
 
 
 class Player(pygame.sprite.Sprite):
@@ -156,7 +156,6 @@ class Player(pygame.sprite.Sprite):
         Calculates the sprite's visual slide during movement animation and updates its rect.
         The player is drawn at the screen center PLUS the visual slide offset.
         """
-        from game_manager import GM
 
         center_x = GM.screen_width // 2
         center_y = GM.screen_height // 2

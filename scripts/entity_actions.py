@@ -2,6 +2,8 @@
 Handles all entity-based actions and animations like movement and attacks
 """
 
+from scripts.animation import InterpolationAnimation
+from scripts.game_manager import GM
 
 class EntityActions:
     """
@@ -24,7 +26,6 @@ class EntityActions:
             new_grid_y: The player's new Y grid position (already set on the player).
             duration_frames: Animation duration for the camera pan.
         """
-        from game_manager import GM
 
         if duration_frames is None:
             duration_frames = GM.ANIMATION_DELAY_FRAMES // 2
@@ -41,8 +42,6 @@ class EntityActions:
         """
         Smoothly animates an entity from current grid position to target grid position.
         """
-        from game_manager import GM
-        from animation import InterpolationAnimation
 
         # Store the starting grid position
         start_grid_x, start_grid_y = entity.get_grid_pos()

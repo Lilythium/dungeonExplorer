@@ -1,8 +1,8 @@
 """
 Handles all level-based actions and animations like doors, chests, fountains, etc.
 """
-from animation import FrameSequenceAnimation
-from tileset import Tile
+from scripts.animation import FrameSequenceAnimation
+from scripts.tileset import Tile
 
 
 class LevelActions:
