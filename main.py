@@ -6,6 +6,7 @@ from scripts.entityClasses.player import Player
 from scripts.game_manager import GM
 from scripts.level import Level, levels
 from scripts.sprites import SpriteSheet
+from scripts.HUD_display import HUD_Manager
 
 # --- Constants ---
 TILE_SIZE = 16
@@ -51,7 +52,7 @@ initial_offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size
 GM.current_level.set_initial_camera_position(initial_offset_x, initial_offset_y)
 
 player_group = pygame.sprite.GroupSingle(GM.player)
-
+GM.hud_manager = HUD_Manager(TILE_MAP_LOADER)
 # --- Game Loop ---
 while True:
     if GM.is_locked:
@@ -82,6 +83,7 @@ while True:
                     action_success = GM.player.perform_queued_action()
 
     # --- Update ---
+    GM.hud_manager.update()
     player_group.update()
     # --- Drawing ---
     screen.fill(BG_COLOR)
@@ -94,6 +96,8 @@ while True:
 
     # Draw Selector
     GM.player.draw_selector(screen)
+
+    GM.hud_manager.draw(screen)
 
     # --- Update ---
     pygame.display.update()

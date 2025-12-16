@@ -5,13 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2ad1ed3c-1420-4e84-96c1-423d4b2aabb2" name="Changes" comment="Added enemy turn logic">
+      <change afterPath="$PROJECT_DIR$/scripts/HUD_display.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/animation.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/animation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/entityClasses/ghost.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/ghost.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/entityClasses/player.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/player.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/entity_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entity_actions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/level.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/level_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level_actions.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

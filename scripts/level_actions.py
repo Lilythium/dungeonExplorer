@@ -1,7 +1,7 @@
 """
 Handles all level-based actions and animations like doors, chests, fountains, etc.
 """
-from scripts.animation import FrameSequenceAnimation
+from scripts.animation import TileSequenceAnimation
 from scripts.tileset import Tile
 from scripts.game_manager import GM
 
@@ -34,7 +34,7 @@ class LevelActions:
             if pos_key in self.level.animated_tiles:
                 del self.level.animated_tiles[pos_key]
 
-        animation = FrameSequenceAnimation(
+        animation = TileSequenceAnimation(
             pos_x=pos_x,
             pos_y=pos_y,
             frame_sequence=frame_sequence,
@@ -66,7 +66,7 @@ class LevelActions:
             if pos_key in self.level.animated_tiles:
                 del self.level.animated_tiles[pos_key]
 
-        animation = FrameSequenceAnimation(
+        animation = TileSequenceAnimation(
             pos_x=pos_x,
             pos_y=pos_y,
             frame_sequence=frame_sequence,
@@ -98,7 +98,7 @@ class LevelActions:
             if pos_key in self.level.animated_tiles:
                 del self.level.animated_tiles[pos_key]
 
-        animation = FrameSequenceAnimation(
+        animation = TileSequenceAnimation(
             pos_x=pos_x,
             pos_y=pos_y,
             frame_sequence=frame_sequence,
@@ -129,7 +129,7 @@ class LevelActions:
             # TODO: Add loot drop logic here
             print(f"Chest opened! Add loot generation here.")
 
-        animation = FrameSequenceAnimation(
+        animation = TileSequenceAnimation(
             pos_x=pos_x,
             pos_y=pos_y,
             frame_sequence=frame_sequence,
@@ -204,7 +204,7 @@ class LevelActions:
                 del self.level.animated_tiles[pos_key]
 
         # Create animation for BOTTOM (the tile that was clicked)
-        bottom_animation = FrameSequenceAnimation(
+        bottom_animation = TileSequenceAnimation(
             pos_x=pos_x,
             pos_y=pos_y,
             frame_sequence=bottom_frame_sequence,
@@ -214,7 +214,7 @@ class LevelActions:
 
         # Create animation for TOP (one tile above)
         top_pos_y = pos_y - 1
-        top_animation = FrameSequenceAnimation(
+        top_animation = TileSequenceAnimation(
             pos_x=pos_x,
             pos_y=top_pos_y,
             frame_sequence=top_frame_sequence,

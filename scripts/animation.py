@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Any, Callable, Optional
 
+import pygame
+
 
 class AnimationType(Enum):
     """Defines the type of animation."""
@@ -46,10 +48,10 @@ class Animation:
         return min(1.0, self.current_frame / self.duration_frames)
 
 
-class FrameSequenceAnimation(Animation):
+class TileSequenceAnimation(Animation):
     """
     Animation that cycles through a sequence of tile indices.
-    Used for things like door opening, chest opening, etc.
+    Used for things like door opening, chest opening, etc., on the map.
     """
 
     def __init__(
@@ -86,6 +88,69 @@ class FrameSequenceAnimation(Animation):
         """Execute callback when animation completes."""
         if self.on_complete_callback:
             self.on_complete_callback(self.pos_x, self.pos_y, self.frame_sequence[-1])
+
+
+class EntityFrameAnimation(Animation):
+    """
+    Animation that cycles a property (usually 'image') on a target object
+    using frames loaded from a SpriteSheet. Used for entity animations.
+    """
+
+    def __init__(
+            self,
+            target_object: Any,
+            property_name: str,
+            spritesheet: Any,  # Requires a SpriteSheet object
+            frame_duration: int = 1,  # Frames to display each sprite frame
+            on_complete_callback: Optional[Callable[[], None]] = None
+    ):
+        # Calculate total duration based on the sheet size and frame duration
+        num_frames = spritesheet.cols * spritesheet.rows
+        total_duration = num_frames * frame_duration
+
+        super().__init__(total_duration)  # Use the calculated total duration
+
+        self.target_object = target_object
+        self.property_name = property_name
+        self.spritesheet = spritesheet
+        self.frame_duration = frame_duration
+        self.on_complete_callback = on_complete_callback
+
+        # Calculate frames per unique sprite
+        self.frames_per_sprite = frame_duration
+        self.total_sprites = num_frames
+
+    def get_current_sprite(self) -> pygame.Surface:
+        """Returns the current sprite image for the target object."""
+        if self.is_complete:
+            return self.spritesheet.get_tile(self.total_sprites - 1)
+
+        # Determine which sprite index to show
+        sprite_index = min(
+            self.current_frame // self.frames_per_sprite,
+            self.total_sprites - 1
+        )
+
+        return self.spritesheet.get_tile(sprite_index)
+
+    def update(self) -> bool:
+        """Updates the entity's property with the current sprite frame."""
+        if self.is_complete:
+            return False
+
+        # --- Update Frame and Property ---
+        super().update()  # Updates self.current_frame and checks for completion
+
+        if not self.is_complete:
+            setattr(self.target_object, self.property_name, self.get_current_sprite())
+            return True  # Still running
+
+        return False  # Completed this frame (on_complete has been called)
+
+    def on_complete(self):
+        """Execute callback when animation completes (zero arguments)."""
+        if self.on_complete_callback:
+            self.on_complete_callback()
 
 
 class InterpolationAnimation(Animation):
@@ -152,7 +217,6 @@ class InterpolationAnimation(Animation):
 
         if self.current_frame >= self.duration_frames:
             self.is_complete = True
-            # Set EXACT end value to prevent floating point errors
             setattr(self.target_object, self.property_name, self.end_value)
             self.on_complete()
             return False

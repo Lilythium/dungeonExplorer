@@ -1,6 +1,6 @@
 import pygame
 
-from scripts.animation import FrameSequenceAnimation, InterpolationAnimation
+from scripts.animation import TileSequenceAnimation, InterpolationAnimation
 from scripts.entityClasses.ghost import Ghost
 from scripts.game_manager import GM
 from scripts.level_actions import LevelActions
@@ -25,7 +25,7 @@ class Level:
         self.enemies = pygame.sprite.Group()
 
         # Track animated tiles - MUST be initialized before setup_level_surface()
-        self.animated_tiles: dict[tuple[int, int], FrameSequenceAnimation] = {}
+        self.animated_tiles: dict[tuple[int, int], TileSequenceAnimation] = {}
 
         self.level_surface = self.setup_level_surface()
         self.spawn_enemies_from_csv()
