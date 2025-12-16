@@ -13,115 +13,113 @@ class EntityActions:
     """
 
     def __init__(self):
-        # might need to pass reference to the entity layer here?
         pass
 
-    def move_player(self, player, new_grid_x, new_grid_y, duration_frames=12):
-        """
-        Locks the game and smoothly animates the camera to center on the
-        player's new grid position. This is the official move action for the Player.
 
-        Args:
-            player: The Player object instance.
-            new_grid_x: The player's new X grid position (already set on the player).
-            new_grid_y: The player's new Y grid position (already set on the player).
-            duration_frames: Animation duration for the camera pan.
-        """
+def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
+    """
+    Locks the game and smoothly animates the camera to center on the
+    player's new grid position. This is the official move action for the Player.
 
-        start_visual_x = player.offset_x_visual
-        start_visual_y = player.offset_y_visual
+    Args:
+        player: The Player object instance.
+        new_grid_x: The player's new X grid position (already set on the player).
+        new_grid_y: The player's new Y grid position (already set on the player).
+        duration_frames: Animation duration for the camera pan.
+    """
 
-        # Update the player's logical grid position immediately
-        player.grid_x = new_grid_x
-        player.grid_y = new_grid_y
-        player.is_moving = True
+    start_visual_x = player.offset_x_visual
+    start_visual_y = player.offset_y_visual
 
-        # Calculate camera target
-        player_pixel_x = new_grid_x * GM.render_tile_size
-        player_pixel_y = new_grid_y * GM.render_tile_size
-        target_offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
-        target_offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
+    # Update the player's logical grid position immediately
+    player.grid_x = new_grid_x
+    player.grid_y = new_grid_y
+    player.is_moving = True
 
-        # Animation complete callback
-        def on_movement_complete():
-            player.sync_visual_offset()
-            player.is_moving = False
+    # Calculate camera target
+    player_pixel_x = new_grid_x * GM.render_tile_size
+    player_pixel_y = new_grid_y * GM.render_tile_size
+    target_offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
+    target_offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
 
-        # --- Animate visual offset (for sprite sliding) ---
-        player_visual_x_anim = InterpolationAnimation(
-            target_object=player,
-            property_name='offset_x_visual',
-            start_value=start_visual_x,  # Use current visual position
-            end_value=float(new_grid_x),
-            duration_frames=duration_frames,
-            easing_function=InterpolationAnimation.ease_out_quad,
-            on_complete_callback=on_movement_complete
-        )
+    # Animation complete callback
+    def on_movement_complete():
+        player.sync_visual_offset()
+        player.is_moving = False
 
-        player_visual_y_anim = InterpolationAnimation(
-            target_object=player,
-            property_name='offset_y_visual',
-            start_value=start_visual_y,  # Use current visual position
-            end_value=float(new_grid_y),
-            duration_frames=duration_frames,
-            easing_function=InterpolationAnimation.ease_out_quad
-        )
+    # --- Animate visual offset (for sprite sliding) ---
+    player_visual_x_anim = InterpolationAnimation(
+        target_object=player,
+        property_name='offset_x_visual',
+        start_value=start_visual_x,  # Use current visual position
+        end_value=float(new_grid_x),
+        duration_frames=duration_frames,
+        easing_function=InterpolationAnimation.ease_out_quad,
+        on_complete_callback=on_movement_complete
+    )
 
-        # --- Animate camera (for world scrolling) ---
-        GM.current_level.animate_camera_to(target_offset_x, target_offset_y, duration_frames=duration_frames)
+    player_visual_y_anim = InterpolationAnimation(
+        target_object=player,
+        property_name='offset_y_visual',
+        start_value=start_visual_y,  # Use current visual position
+        end_value=float(new_grid_y),
+        duration_frames=duration_frames,
+        easing_function=InterpolationAnimation.ease_out_quad
+    )
 
-        # Add player visual animations
-        GM.add_animation(player_visual_x_anim)
-        GM.add_animation(player_visual_y_anim)
+    # --- Animate camera (for world scrolling) ---
+    GM.current_level.animate_camera_to(target_offset_x, target_offset_y, duration_frames=duration_frames)
 
-        print(f"Player moving to ({new_grid_x}, {new_grid_y}) from visual offset ({start_visual_x}, {start_visual_y})")
+    # Add player visual animations
+    GM.add_animation(player_visual_x_anim)
+    GM.add_animation(player_visual_y_anim)
 
-    def move_entity(self, entity, target_offset_x, target_offset_y, duration_frames=20):
-        """
-        Smoothly animates an entity from current grid position to target grid position.
-        """
+    print(f"Player moving to ({new_grid_x}, {new_grid_y}) from visual offset ({start_visual_x}, {start_visual_y})")
 
-        # Store the starting grid position
-        start_grid_x, start_grid_y = entity.get_grid_pos()
 
-        # Store target for animation (these are the final grid coordinates)
-        target_grid_x = target_offset_x
-        target_grid_y = target_offset_y
+def move_entity(self, entity, target_grid_x, target_grid_y, duration_frames=12):
+    """
+    Smoothly animates an entity from current grid position to target grid position
+    by animating the internal slide properties.
+    """
+    # Store the current position as the start for the animation
+    entity.start_grid_x, entity.start_grid_y = entity.get_grid_pos()
+    entity.is_moving = True
 
-        def finalize_move():
-            entity.set_grid_pos(target_grid_x, target_grid_y)
-            entity.sync_visual_offset()  # Ensure O_v == G_x
-            entity.is_moving = False
+    # Calculate the direction and magnitude of the slide (e.g., -1 or 1)
+    slide_dx = target_grid_x - entity.start_grid_x
+    slide_dy = target_grid_y - entity.start_grid_y
 
-        # We must lock the game loop during entity movement animation
-        GM.is_locked = True
-        entity.is_moving = True
-        # --- Create animation for grid_x ---
-        offset_x_animation = InterpolationAnimation(
-            target_object=entity,
-            property_name='offset_x_visual',  # Assuming a visual offset property for animation
-            start_value=start_grid_x,
-            end_value=target_grid_x,
-            duration_frames=duration_frames,
-            easing_function=InterpolationAnimation.linear_ease,
-            on_complete_callback=finalize_move
-        )
+    def finalize_move():
+        # Logical update happens NOW, when the animation is guaranteed to be 1.0
+        entity.set_grid_pos(target_grid_x, target_grid_y)
+        entity.is_moving = False
+        entity.slide_x = 0.0  # Reset slide for next move
+        entity.slide_y = 0.0
 
-        # --- Create animation for grid_y ---
-        offset_y_animation = InterpolationAnimation(
-            target_object=entity,
-            property_name='offset_y_visual',
-            start_value=start_grid_y,
-            end_value=target_grid_y,
-            duration_frames=duration_frames,
-            easing_function=InterpolationAnimation.linear_ease
-        )
+    # --- Create Slide Animation ---
+    offset_x_animation = InterpolationAnimation(
+        target_object=entity,
+        property_name='slide_x',
+        start_value=0.0,
+        end_value=float(slide_dx),
+        duration_frames=duration_frames,
+        easing_function=InterpolationAnimation.ease_out_quad,
+        on_complete_callback=finalize_move
+    )
 
-        # Add both animations
-        GM.add_animation(offset_x_animation)
-        GM.add_animation(offset_y_animation)
+    # Animate slide_y from 0.0 to slide_dy (e.g., 0.0 to 0.0)
+    offset_y_animation = InterpolationAnimation(
+        target_object=entity,
+        property_name='slide_y',
+        start_value=0.0,
+        end_value=float(slide_dy),
+        duration_frames=duration_frames,
+        easing_function=InterpolationAnimation.ease_out_quad
+    )
 
-        # Note: Since the player is centered, this movement animation is tricky.
-        # A simpler way for a centered player is to use this function to just lock
-        # the game and let the camera movement handle the visual update.
-        # But for non-centered entities (like enemies), this structure is correct.
+    # 4. Execute
+    GM.add_animation(offset_x_animation)
+    GM.add_animation(offset_y_animation)
+
+    return offset_x_animation

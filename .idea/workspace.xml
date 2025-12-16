@@ -5,13 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2ad1ed3c-1420-4e84-96c1-423d4b2aabb2" name="Changes" comment="Initial commit">
+      <change afterPath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/entityClasses/entity.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dungeonExplorer.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dungeonExplorer.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/testLevel.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/animation.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/animation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/entity_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entity_actions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/level.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/level_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/level_actions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/player.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/player.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/player.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/player.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,6 +55,7 @@
       <recent name="C:\Users\samue\Documents\Python Scripts\dungeonExplorer\graphics" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\samue\Documents\Python Scripts\dungeonExplorer\scripts\entityClasses" />
       <recent name="C:\Users\samue\Documents\Python Scripts\dungeonExplorer\scripts" />
       <recent name="C:\Users\samue\Documents\Python Scripts\dungeonExplorer" />
     </key>

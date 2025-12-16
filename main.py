@@ -4,7 +4,7 @@ import pygame
 
 from scripts.game_manager import GM
 from scripts.level import Level, levels
-from scripts.player import Player
+from scripts.entityClasses.player import Player
 from scripts.sprites import SpriteSheet
 
 # --- Constants ---
@@ -40,7 +40,7 @@ GM.current_level = Level(
 
 # Instantiate Player and store it in GM
 GM.player = Player(TILE_MAP_LOADER)
-GM.player.set_grid_pos(8, 6)  # Initial player position
+GM.player.set_grid_pos(10, 8)  # Initial player position
 GM.player.sync_visual_offset()
 
 # Set initial camera position to center on player

@@ -7,8 +7,8 @@ from scripts.tileset import Tile
 
 levels = {
     'test': {
-        'terrain': 'data/testLevel.csv',
-        # add other layers here later (e.g., 'enemies', 'props')
+        'terrain': 'data/testLevel_TileLayer.csv',
+        'enemy': 'data/testLevel_EnemyLayer.csv'
     }
 }
 
@@ -19,6 +19,7 @@ class Level:
         self.target_offset_x = None
         self.tile_map_loader = tile_map_loader
         self.terrain_data = import_csv_layout(level_data['terrain'])
+        self.enemy_data = import_csv_layout(level_data['enemy'])
 
         # Track animated tiles - MUST be initialized before setup_level_surface()
         self.animated_tiles: dict[tuple[int, int], FrameSequenceAnimation] = {}
@@ -62,6 +63,11 @@ class Level:
 
         return map_surface
 
+    def spawn_enemies_from_csv(self):
+        """Creates and places enemies based on level data"""
+        if not self.enemy_data:
+            return
+
     def get_tile_at(self, pos_x, pos_y):
         """Returns tile ID at x, y."""
         max_rows = len(self.terrain_data)
@@ -84,6 +90,10 @@ class Level:
             self.level_surface = self.setup_level_surface()
             return True
         return False
+
+    def is_walkable(self, target_x, target_y):
+        """Helper function to check if tile is walkable"""
+        return self.get_tile_at(target_x, target_y) in Tile.get_walkable_tiles()
 
     def set_initial_camera_position(self, offset_x, offset_y):
         """

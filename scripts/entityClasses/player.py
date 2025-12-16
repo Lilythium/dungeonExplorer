@@ -1,15 +1,16 @@
 import pygame
 
+from scripts.entityClasses.entity import Entity
 from scripts.game_manager import GM
 from scripts.tileset import Tile
+from scripts.entity_actions import move_player
 
-
-class Player(pygame.sprite.Sprite):
+class Player(Entity):
     COLOUR_GREEN = (0, 200, 0, 255)
     COLOUR_RED = (200, 0, 0, 255)
 
     def __init__(self, tile_map_loader):
-        super().__init__()
+        super().__init__(tile_map_loader)
         self.tile_map_loader = tile_map_loader
 
         # --- Sprite Setup ---
@@ -26,10 +27,6 @@ class Player(pygame.sprite.Sprite):
         self.rect.centerx = GM.screen_width // 2
         self.rect.centery = GM.screen_height // 2
 
-        # --- Game Grid State  ---
-        self.grid_x = 0
-        self.grid_y = 0
-
         # --- Visual Animation State ---
         # These properties will be animated by EntityActions.move_entity
         self.offset_x_visual = float(self.grid_x)
@@ -38,24 +35,12 @@ class Player(pygame.sprite.Sprite):
         self.squash_y = 1.0
         self.is_moving = False
 
-    def get_grid_pos(self):
-        """Returns the player's position in the map grid."""
-        return self.grid_x, self.grid_y
-
     def set_grid_pos(self, x, y):
         """Sets the player's starting position in the map grid."""
         self.grid_x = x
         self.grid_y = y
         self.offset_x_visual = float(x)
         self.offset_y_visual = float(y)
-
-    def sync_visual_offset(self):
-        """
-        Ensures the visual offset is set to the current logical grid position.
-        Called on startup or after a non-animated teleport.
-        """
-        self.offset_x_visual = float(self.grid_x)
-        self.offset_y_visual = float(self.grid_y)
 
     def get_selector_position(self):
         """
@@ -140,9 +125,7 @@ class Player(pygame.sprite.Sprite):
             # --- Successful Move ---
             print(f"Player moved to ({new_x}, {new_y}).")
 
-            from scripts.entity_actions import EntityActions
-            entity_actions = EntityActions()
-            entity_actions.move_player(self, new_x, new_y, duration_frames=10)
+            move_player(self, new_x, new_y, duration_frames=10)
             self.is_moving = True
             if self.facing_dir[0] != 0:
                 self.squash_y = 1.1
@@ -157,6 +140,13 @@ class Player(pygame.sprite.Sprite):
         else:
             print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
             return False
+
+    def take_damage(self, amount: int, direction: tuple[int, int]):
+        # subtract amount from health here
+        new_x, new_y = self.get_grid_pos()
+        new_x += direction[0]
+        new_y += direction[1]
+        move_player(self, new_x, new_y, duration_frames=8)
 
     def update(self):
         """
