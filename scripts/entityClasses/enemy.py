@@ -108,6 +108,7 @@ class Enemy(Entity):
         The main AI driver. Called during the enemy turn phase to decide the next action.
         """
         if self.is_moving:
+            print(f"[ENEMY DEBUG] Enemy at {self.get_grid_pos()} is still moving")
             return False
 
         # State Transition Check
@@ -121,13 +122,18 @@ class Enemy(Entity):
         match self.ai_state:
             case "CHASE":
                 action_taken = self._do_chase(player_grid_pos)
+                # If an action was queued, execute it
+                if action_taken:
+                    action_taken = self.perform_queued_action()
             case "PATROL":
                 action_taken = self._do_patrol()
+                # If an action was queued, execute it
+                if action_taken:
+                    action_taken = self.perform_queued_action()
             case "ATTACK":
                 # ATTACK state should be set by _do_chase if adjacent
                 action_taken = self.perform_queued_action()
 
-                # Return True if an action was queued (even if it's blocked later)
         return action_taken
 
     def _do_chase(self, player_grid_pos: tuple[int, int]) -> bool:

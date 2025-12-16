@@ -185,9 +185,10 @@ class Level:
         if self.animated_tiles:
             self.level_surface = self.setup_level_surface()
 
-        # Use the animated offset values (which are being interpolated by animations)
         display_surface.blit(self.level_surface, (round(self.offset_x), round(self.offset_y)))
-        self.enemies.draw(self.level_surface)
+
+        self.enemies.update()
+        self.enemies.draw(display_surface)
 
     def process_action(self, pos_x, pos_y, tile_id):
         """
@@ -226,19 +227,28 @@ class Level:
         player's turn is finished and animations are resolved.
         """
         if not self.enemies:
+            print("[ENEMY DEBUG] No enemies to process")
             return
 
         player_pos = GM.player.get_grid_pos()
+        print(f"[ENEMY DEBUG] Processing {len(self.enemies)} enemies")
 
         # Iterate over a copy of the group to allow removal (death) during iteration
         for enemy in list(self.enemies):
-            # 1. Check if the enemy is ready and alive
+            # Check if the enemy is ready and alive
             if enemy.is_alive and not enemy.is_moving:
+                print(f"[ENEMY DEBUG] Enemy at {enemy.get_grid_pos()} taking turn")
 
-                # 2. Decide Action (sets enemy.facing_dir and AI state)
-                # This returns True if an action (move or attack) was queued
-                turn_consumed = enemy.take_turn(player_pos)
+                # take_turn() will handle both decision-making AND execution
+                # It returns True if an action was taken
+                action_taken = enemy.take_turn(player_pos)
 
-                # 3. Execute Action (starts animation or executes attack logic)
-                if turn_consumed:
-                    enemy.perform_queued_action()
+                if action_taken:
+                    print(f"[ENEMY DEBUG] Enemy took action")
+                else:
+                    print(f"[ENEMY DEBUG] Enemy could not act")
+            else:
+                if not enemy.is_alive:
+                    print(f"[ENEMY DEBUG] Enemy is dead, skipping")
+                if enemy.is_moving:
+                    print(f"[ENEMY DEBUG] Enemy is still moving, skipping")

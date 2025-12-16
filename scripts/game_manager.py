@@ -24,6 +24,9 @@ class GameManager:
             cls._instance.animation_manager = AnimationManager()
             cls._instance.ANIMATION_DELAY_FRAMES = 30
 
+            # Flag to track if we should process enemy turns after animations
+            cls._instance.should_process_enemy_turn = False
+
         return cls._instance
 
     @property
@@ -49,24 +52,38 @@ class GameManager:
         still_animating = self.animation_manager.update()
 
         # If all animations complete, trigger turn resolution
-        if not still_animating:
+        if not still_animating and self.should_process_enemy_turn:
             self.handle_turn()
 
         return still_animating
+
+    def start_turn(self):
+        """
+        Called by the player when they perform an action.
+        This flags that enemy turns should be processed after animations complete.
+        """
+        print("[TURN DEBUG] Player action initiated - enemy turns will process after animations")
+        self.should_process_enemy_turn = True
 
     def handle_turn(self):
         """
         Called after the player's action and ALL animations are resolved.
         This is the global trigger for the rest of the game world's actions.
         """
+        if not self.should_process_enemy_turn:
+            print("[TURN DEBUG] No enemy turn needed, skipping")
+            return
+
         print("--- Turn Resolution (Post-Animation) ---")
-        # Enemy movement, trap checks, status effect decay, etc., happen here.
+
+        # Reset the flag BEFORE processing enemy turns
+        # This prevents enemy animations from triggering another handle_turn()
+        self.should_process_enemy_turn = False
+
+        # Execute enemy turns
         if self.current_level:
-            print("--- Executing enemy turns ---")
             self.current_level.execute_enemy_turns()
 
-        if not self.animation_manager.is_animating():
-            self.is_locked = False
         print("--- Turn End ---")
 
 

@@ -93,6 +93,8 @@ class Player(Entity):
             True: Simple move action (triggers animation lock, no tile swap needed).
             tuple: (pos_x, pos_y, final_tile_id) if an interaction/attack needs cleanup.
         """
+        from scripts.game_manager import GM  # Import at top of file if not already there
+
         dx, dy = self.facing_dir
 
         if (dx, dy) == (0, 0):
@@ -113,7 +115,8 @@ class Player(Entity):
                 # Interaction succeeded (e.g., door animation started)
                 print(f"Player initiated action on tile ID {target_tile_index}.")
                 self.facing_dir = (0, 0)
-                # Returns the (x, y, final_id) tuple from Level.process_action
+                # Signal that enemy turns should process after animations
+                GM.start_turn()
                 return animation_info
             else:
                 # Action failed
@@ -134,9 +137,12 @@ class Player(Entity):
                 self.squash_x = 1.1
                 self.squash_y = 0.9
             self.facing_dir = (0, 0)
+
+            # Signal that enemy turns should process after animations
+            GM.start_turn()
             return True
 
-            # --- Handle Blocked Actions ---
+        # --- Handle Blocked Actions ---
         else:
             print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
             return False

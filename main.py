@@ -2,9 +2,9 @@ from sys import exit
 
 import pygame
 
+from scripts.entityClasses.player import Player
 from scripts.game_manager import GM
 from scripts.level import Level, levels
-from scripts.entityClasses.player import Player
 from scripts.sprites import SpriteSheet
 
 # --- Constants ---
@@ -79,13 +79,7 @@ while True:
 
                 # --- Handle Interactions ---
                 if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                    # Store position BEFORE action
-                    old_pos = (GM.player.grid_x, GM.player.grid_y)
-
                     action_success = GM.player.perform_queued_action()
-
-                    # Check if player actually moved
-                    new_pos = (GM.player.grid_x, GM.player.grid_y)
 
     # --- Update ---
     player_group.update()
