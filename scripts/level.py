@@ -121,6 +121,21 @@ class Level:
         """Helper function to check if tile is walkable"""
         return self.get_tile_at(target_x, target_y) in Tile.get_walkable_tiles()
 
+    def get_enemy_at(self, pos_x, pos_y):
+        """
+        Returns the enemy at the given grid position, or None if no enemy there
+        Args:
+            pos_x: Grid X position
+            pos_y: Grid Y position
+
+        Returns:
+            Enemy object if found, None otherwise
+        """
+        for enemy in self.enemies:
+            if enemy.is_alive and enemy.grid_x == pos_x and enemy.grid_y == pos_y:
+                return enemy
+        return None
+
     def set_initial_camera_position(self, offset_x, offset_y):
         """
         Sets the initial camera position without animation.

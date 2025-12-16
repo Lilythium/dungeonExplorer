@@ -145,14 +145,23 @@ class InterpolationAnimation(Animation):
 
     def update(self) -> bool:
         """Updates the interpolation and sets the new value on the target object."""
-        still_running = super().update()
         if self.is_complete:
-            eased_progress = 1.0
-        else:
-            # Get eased progress
-            progress = self.get_progress()
-            eased_progress = self.easing_function(progress)
-        # Calculate and set the new value
+            return False
+
+        self.current_frame += 1
+
+        if self.current_frame >= self.duration_frames:
+            self.is_complete = True
+            # Set EXACT end value to prevent floating point errors
+            setattr(self.target_object, self.property_name, self.end_value)
+            self.on_complete()
+            return False
+
+        # Calculate progress and eased value
+        progress = self.get_progress()
+        eased_progress = self.easing_function(progress)
+
+        # Calculate new value
         if self.is_tuple:
             new_value = tuple(
                 self.lerp(self.start_value[i], self.end_value[i], eased_progress)
@@ -162,8 +171,7 @@ class InterpolationAnimation(Animation):
             new_value = self.lerp(self.start_value, self.end_value, eased_progress)
 
         setattr(self.target_object, self.property_name, new_value)
-
-        return still_running
+        return True
 
     def on_complete(self):
         """Ensure final value is set and execute callback."""

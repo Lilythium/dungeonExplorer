@@ -7,6 +7,7 @@ class Ghost(Enemy):
         super().__init__(tile_map_loader, spawn_x, spawn_y)
 
         self.image = self.tile_map_loader.get_tile(121)
+        self.original_image = self.image.copy()
         self.rect = self.image.get_rect()
         self.rect.topleft = (spawn_x * GM.render_tile_size, spawn_y * GM.render_tile_size)
 

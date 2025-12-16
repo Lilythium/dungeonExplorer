@@ -1,9 +1,10 @@
 import pygame
 
 from scripts.entityClasses.entity import Entity
+from scripts.entity_actions import move_player
 from scripts.game_manager import GM
 from scripts.tileset import Tile
-from scripts.entity_actions import move_player
+
 
 class Player(Entity):
     COLOUR_GREEN = (0, 200, 0, 255)
@@ -34,6 +35,11 @@ class Player(Entity):
         self.squash_x = 1.0
         self.squash_y = 1.0
         self.is_moving = False
+
+        # --- Combat Stats ---
+        self.attack_dmg = 1
+        self.max_health = 3
+        self.current_health = self.max_health
 
     def set_grid_pos(self, x, y):
         """Sets the player's starting position in the map grid."""
@@ -77,7 +83,7 @@ class Player(Entity):
             target_grid_x, target_grid_y, screen_x, screen_y = selector_info
 
             target_tile_index = GM.current_level.get_tile_at(target_grid_x, target_grid_y)
-            if target_tile_index in Tile.get_enemy_tiles():
+            if GM.current_level.get_enemy_at(target_grid_x, target_grid_y):
                 surface.blit(self.get_colored_selector(self.COLOUR_RED), (screen_x, screen_y))
             elif target_tile_index in Tile.get_selectable_tiles():
                 surface.blit(self.get_colored_selector(self.COLOUR_GREEN), (screen_x, screen_y))
@@ -106,8 +112,12 @@ class Player(Entity):
 
         target_tile_index = GM.current_level.get_tile_at(new_x, new_y)
 
-        # --- Check for INTERACTION (Door/Chest) or ATTACK (Enemy) ---
-        if target_tile_index in Tile.get_enemy_tiles() or target_tile_index in Tile.get_selectable_tiles():
+        # --- Check for ATTACK ---
+        attack_target = GM.current_level.get_enemy_at(new_x, new_y)
+        if attack_target:
+            self.attack_enemy(attack_target)
+        # --- Check for INTERACTION (Door/Chest) ---
+        if target_tile_index in Tile.get_selectable_tiles():
 
             animation_info = GM.current_level.process_action(new_x, new_y, target_tile_index)
 
@@ -147,12 +157,18 @@ class Player(Entity):
             print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
             return False
 
+    def attack_enemy(self, enemy):
+        enemy.take_damage(self.attack_dmg, self.facing_dir)
+
     def take_damage(self, amount: int, direction: tuple[int, int]):
-        # subtract amount from health here
+        self.current_health -= amount
         new_x, new_y = self.get_grid_pos()
         new_x += direction[0]
         new_y += direction[1]
         move_player(self, new_x, new_y, duration_frames=8)
+
+        if self.current_health <= 0:
+            self.game_over()
 
     def update(self):
         """
@@ -174,3 +190,6 @@ class Player(Entity):
         self.rect = self.image.get_rect()
         self.rect.centerx = center_x
         self.rect.centery = center_y
+
+    def game_over(self):
+        pass

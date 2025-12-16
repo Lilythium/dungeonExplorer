@@ -1,3 +1,5 @@
+import pygame
+
 from scripts.entity_actions import move_entity
 from .entity import Entity
 from .player import Player
@@ -14,6 +16,7 @@ class Enemy(Entity):
 
         # --- Rendering and Pygame Setup ---
         self.image = self.tile_map_loader.get_tile(0)  # Placeholder, load actual enemy tile
+        self.original_image = self.image.copy()
         self.rect = self.image.get_rect()  # Pygame rectangle for drawing/positioning
 
         # --- Logical Grid Position (Used for AI and turn-based logic) ---
@@ -28,6 +31,10 @@ class Enemy(Entity):
         self.start_grid_x: int = self.grid_x  # The grid position before a move starts
         self.start_grid_y: int = self.grid_y
         self.is_moving: bool = False  # Flag to lock AI turns during animation
+
+        # --- Squish ---
+        self.squash_x: float = 1.0
+        self.squash_y: float = 1.0
 
         # --- Combat and Stats ---
         self.max_hp: int = 1
@@ -127,7 +134,6 @@ class Enemy(Entity):
                     action_taken = self.perform_queued_action()
             case "PATROL":
                 action_taken = self._do_patrol()
-                # If an action was queued, execute it
                 if action_taken:
                     action_taken = self.perform_queued_action()
             case "ATTACK":
@@ -224,12 +230,9 @@ class Enemy(Entity):
             return False
 
         target_x, target_y = self.facing_dir
-
-        # Get player reference
         player = GM.player
 
         # --- Attack Check ---
-        # Check if the target tile is the player (i.e., this is an attack)
         if (target_x, target_y) == player.get_grid_pos():
             self.attack_player(player)
             self.ai_state = "CHASE"
@@ -237,6 +240,13 @@ class Enemy(Entity):
 
         # --- Move Check and Execution ---
         if GM.current_level.is_walkable(target_x, target_y):
+            # check move direction for squash
+            if target_x - self.grid_y != 0:
+                self.squash_y = 1.1
+                self.squash_x = 0.9
+            else:
+                self.squash_x = 1.1
+                self.squash_y = 0.9
             move_entity(self, target_x, target_y)
             # The logical position update (self.set_grid_pos) happens inside the
             # animation's on_complete_callback, NOT here.
@@ -259,13 +269,18 @@ class Enemy(Entity):
         # Trigger attack animation/sound effects/hit feedback
         # GM.event_system.trigger_feedback("ATTACK", self, player_entity)
 
-    def take_damage(self, amount: int):
+    def take_damage(self, amount: int, direction: tuple[int, int]):
         """
         Processes incoming damage and updates health.
         """
         final_damage = amount
 
         self.hit_points -= final_damage
+
+        new_x, new_y = self.get_grid_pos()
+        new_x += direction[0]
+        new_y += direction[1]
+        move_entity(self, new_x, new_y, duration_frames=8)
 
         # Trigger visual feedback (e.g., color flash)
 
@@ -284,15 +299,34 @@ class Enemy(Entity):
         Calculates the enemy's pixel position based on the animated slide
         relative to the map's current draw position.
         """
+        # Determine base position and slide offset
+        if self.is_moving:
+            base_grid_x = self.start_grid_x
+            base_grid_y = self.start_grid_y
+            slide_offset_x = self.slide_x * GM.render_tile_size
+            slide_offset_y = self.slide_y * GM.render_tile_size
 
-        # Calculate the screen position of the enemy's starting tile
-        screen_pos_x = (self.start_grid_x * GM.render_tile_size) + GM.current_level.offset_x
-        screen_pos_y = (self.start_grid_y * GM.render_tile_size) + GM.current_level.offset_y
+            # Apply squash & stretch while moving
+            if self.squash_x != 1.0 or self.squash_y != 1.0:
+                new_width = int(self.original_image.get_width() * self.squash_x)
+                new_height = int(self.original_image.get_height() * self.squash_y)
+                self.image = pygame.transform.scale(self.original_image, (new_width, new_height))
+        else:
+            base_grid_x = self.grid_x
+            base_grid_y = self.grid_y
+            slide_offset_x = 0
+            slide_offset_y = 0
 
-        # Calculate the animated pixel slide offset.
-        slide_offset_x = self.slide_x * GM.render_tile_size
-        slide_offset_y = self.slide_y * GM.render_tile_size
+            # Reset to original image when not moving
+            if self.squash_x != 1.0 or self.squash_y != 1.0:
+                self.squash_x = 1.0
+                self.squash_y = 1.0
+                self.image = self.original_image.copy()
 
-        # Set the final drawing position.
+        # Calculate screen position using current camera offset
+        screen_pos_x = (base_grid_x * GM.render_tile_size) + GM.current_level.offset_x
+        screen_pos_y = (base_grid_y * GM.render_tile_size) + GM.current_level.offset_y
+
+        # Add the slide offset
         self.rect.x = round(screen_pos_x + slide_offset_x)
         self.rect.y = round(screen_pos_y + slide_offset_y)

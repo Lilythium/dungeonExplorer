@@ -82,6 +82,8 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
     Smoothly animates an entity from current grid position to target grid position
     by animating the internal slide properties.
     """
+    entity.slide_x = 0.0
+    entity.slide_y = 0.0
     # Store the current position as the start for the animation
     entity.start_grid_x, entity.start_grid_y = entity.get_grid_pos()
     entity.is_moving = True
@@ -90,12 +92,28 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
     slide_dx = target_grid_x - entity.start_grid_x
     slide_dy = target_grid_y - entity.start_grid_y
 
+    print(f"[MOVE DEBUG] Entity at ({entity.grid_x}, {entity.grid_y}) moving to ({target_grid_x}, {target_grid_y})")
+    print(f"[MOVE DEBUG] Slide delta: ({slide_dx}, {slide_dy})")
+    print(f"[MOVE DEBUG] Starting slide values: ({entity.slide_x}, {entity.slide_y})")
+
     def finalize_move():
-        # Logical update happens NOW, when the animation is guaranteed to be 1.0
-        entity.set_grid_pos(target_grid_x, target_grid_y)
+        print(f"[MOVE DEBUG] Finalizing move - current slide: ({entity.slide_x}, {entity.slide_y})")
+
+        # Update logical grid position
+        entity.grid_x = target_grid_x
+        entity.grid_y = target_grid_y
+
+        # Update start positions to match new grid position
+        entity.start_grid_x = target_grid_x
+        entity.start_grid_y = target_grid_y
+
+        # Reset animation state
         entity.is_moving = False
-        entity.slide_x = 0.0  # Reset slide for next move
+        entity.slide_x = 0.0
         entity.slide_y = 0.0
+
+        print(
+            f"[MOVE DEBUG] Move finalized - grid: ({entity.grid_x}, {entity.grid_y}), slide: ({entity.slide_x}, {entity.slide_y})")
 
     # --- Create Slide Animation ---
     offset_x_animation = InterpolationAnimation(
@@ -108,7 +126,6 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
         on_complete_callback=finalize_move
     )
 
-    # Animate slide_y from 0.0 to slide_dy (e.g., 0.0 to 0.0)
     offset_y_animation = InterpolationAnimation(
         target_object=entity,
         property_name='slide_y',
@@ -118,8 +135,9 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
         easing_function=InterpolationAnimation.ease_out_quad
     )
 
-    # 4. Execute
+    # Execute
     GM.add_animation(offset_x_animation)
     GM.add_animation(offset_y_animation)
 
     return offset_x_animation
+
