@@ -5,7 +5,7 @@ import pygame
 from scripts.entityClasses.player import Player
 from scripts.game_manager import GM
 from scripts.level import Level, levels
-from scripts.sprites import SpriteSheet
+from scripts.support import SpriteSheet
 from scripts.HUD_display import HUD_Manager
 
 # --- Constants ---

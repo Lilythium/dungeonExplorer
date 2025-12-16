@@ -2,7 +2,7 @@ import pygame
 
 from scripts.animation import EntityFrameAnimation
 from scripts.game_manager import GM
-from scripts.sprites import SpriteSheet
+from scripts.support import SpriteSheet
 
 
 class HUD_Manager:
