@@ -150,9 +150,9 @@ class Tile(Enum):
             Tile.SORCERER.value,
             Tile.BAT.value,
             Tile.SPIDER.value,
-            Tile.RAT_BROWN,
-            Tile.RAT_GREY,
-            Tile.DWARF
+            Tile.RAT_BROWN.value,
+            Tile.RAT_GREY.value,
+            Tile.DWARF.value
         }
 
 

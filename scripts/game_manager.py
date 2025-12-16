@@ -61,6 +61,12 @@ class GameManager:
         """
         print("--- Turn Resolution (Post-Animation) ---")
         # Enemy movement, trap checks, status effect decay, etc., happen here.
+        if self.current_level:
+            print("--- Executing enemy turns ---")
+            self.current_level.execute_enemy_turns()
+
+        if not self.animation_manager.is_animating():
+            self.is_locked = False
         print("--- Turn End ---")
 
 

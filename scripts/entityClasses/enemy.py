@@ -1,3 +1,4 @@
+from scripts.entity_actions import move_entity
 from .entity import Entity
 from .player import Player
 from ..game_manager import GM
@@ -81,7 +82,10 @@ class Enemy(Entity):
             # We don't check the enemy's starting tile, only the tiles in between.
             if current_x != self.grid_x or current_y != self.grid_y:
                 tile_id = level.get_tile_at(current_x, current_y)
-                if tile_id not in (Tile.get_enemy_tiles(), Tile.get_walkable_tiles(), Tile.get_selectable_tiles()):
+                walkable = Tile.get_walkable_tiles()
+                selectable = Tile.get_selectable_tiles()
+                enemies = Tile.get_enemy_tiles()
+                if tile_id not in walkable and tile_id not in selectable and tile_id not in enemies:
                     # TODO: may want to create a set of tiles that do block vision
                     return False  # Vision is blocked
 
@@ -215,8 +219,8 @@ class Enemy(Entity):
 
         target_x, target_y = self.facing_dir
 
-        # Get player reference (ensure GM.current_level.get_player() works)
-        player = GM.current_level.get_player()
+        # Get player reference
+        player = GM.player
 
         # --- Attack Check ---
         # Check if the target tile is the player (i.e., this is an attack)
@@ -227,7 +231,7 @@ class Enemy(Entity):
 
         # --- Move Check and Execution ---
         if GM.current_level.is_walkable(target_x, target_y):
-            GM.entity_actions.move_entity(self, target_x, target_y)
+            move_entity(self, target_x, target_y)
             # The logical position update (self.set_grid_pos) happens inside the
             # animation's on_complete_callback, NOT here.
             return True

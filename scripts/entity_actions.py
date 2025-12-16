@@ -77,7 +77,7 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
     print(f"Player moving to ({new_grid_x}, {new_grid_y}) from visual offset ({start_visual_x}, {start_visual_y})")
 
 
-def move_entity(self, entity, target_grid_x, target_grid_y, duration_frames=12):
+def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
     """
     Smoothly animates an entity from current grid position to target grid position
     by animating the internal slide properties.
@@ -86,7 +86,7 @@ def move_entity(self, entity, target_grid_x, target_grid_y, duration_frames=12):
     entity.start_grid_x, entity.start_grid_y = entity.get_grid_pos()
     entity.is_moving = True
 
-    # Calculate the direction and magnitude of the slide (e.g., -1 or 1)
+    # Calculate the direction and magnitude of the slide
     slide_dx = target_grid_x - entity.start_grid_x
     slide_dy = target_grid_y - entity.start_grid_y
 

@@ -1,5 +1,7 @@
 import pygame
+
 from scripts.animation import FrameSequenceAnimation, InterpolationAnimation
+from scripts.entityClasses.ghost import Ghost
 from scripts.game_manager import GM
 from scripts.level_actions import LevelActions
 from scripts.support import import_csv_layout
@@ -20,11 +22,13 @@ class Level:
         self.tile_map_loader = tile_map_loader
         self.terrain_data = import_csv_layout(level_data['terrain'])
         self.enemy_data = import_csv_layout(level_data['enemy'])
+        self.enemies = pygame.sprite.Group()
 
         # Track animated tiles - MUST be initialized before setup_level_surface()
         self.animated_tiles: dict[tuple[int, int], FrameSequenceAnimation] = {}
 
         self.level_surface = self.setup_level_surface()
+        self.spawn_enemies_from_csv()
         self.offset_x = 0.0
         self.offset_y = 0.0
 
@@ -67,6 +71,28 @@ class Level:
         """Creates and places enemies based on level data"""
         if not self.enemy_data:
             return
+
+        # Ensure the enemy group is empty before spawning
+        self.enemies.empty()
+
+        for row_index, row in enumerate(self.enemy_data):
+            for col_index, tile_id_str in enumerate(row):
+                tile_index = int(tile_id_str)
+
+                if tile_index != Tile.EMPTY.value:
+
+                    # Determine which enemy type to spawn based on tile_index
+                    # NOTE: You must map tile IDs from your enemy layer CSV to specific Enemy classes.
+
+                    if tile_index == Tile.GHOST_LARGE.value:
+                        # Instantiate the concrete enemy class
+                        new_enemy = Ghost(
+                            tile_map_loader=self.tile_map_loader,
+                            spawn_x=col_index,
+                            spawn_y=row_index
+                        )
+                        # Add the enemy to the level's enemy group
+                        self.enemies.add(new_enemy)
 
     def get_tile_at(self, pos_x, pos_y):
         """Returns tile ID at x, y."""
@@ -161,6 +187,7 @@ class Level:
 
         # Use the animated offset values (which are being interpolated by animations)
         display_surface.blit(self.level_surface, (round(self.offset_x), round(self.offset_y)))
+        self.enemies.draw(self.level_surface)
 
     def process_action(self, pos_x, pos_y, tile_id):
         """
@@ -192,3 +219,26 @@ class Level:
         # Add more action types here as needed
 
         return False  # No valid action found
+
+    def execute_enemy_turns(self):
+        """
+        The main AI driver for the level. Called by the GameManager once the
+        player's turn is finished and animations are resolved.
+        """
+        if not self.enemies:
+            return
+
+        player_pos = GM.player.get_grid_pos()
+
+        # Iterate over a copy of the group to allow removal (death) during iteration
+        for enemy in list(self.enemies):
+            # 1. Check if the enemy is ready and alive
+            if enemy.is_alive and not enemy.is_moving:
+
+                # 2. Decide Action (sets enemy.facing_dir and AI state)
+                # This returns True if an action (move or attack) was queued
+                turn_consumed = enemy.take_turn(player_pos)
+
+                # 3. Execute Action (starts animation or executes attack logic)
+                if turn_consumed:
+                    enemy.perform_queued_action()

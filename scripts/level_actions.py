@@ -84,7 +84,7 @@ class LevelActions:
         """Opens a right door with animation."""
 
         if doRecurse:
-            self.open_door_right(pos_x - 1, pos_y, False)
+            self.open_door_left(pos_x - 1, pos_y, False)
 
         frame_sequence = [
             Tile.DOOR_RIGHT_CLOSED.value,
