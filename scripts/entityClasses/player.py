@@ -163,8 +163,8 @@ class Player(Entity):
     def take_damage(self, amount: int, direction: tuple[int, int]):
         self.current_health -= amount
         new_x, new_y = self.get_grid_pos()
-        new_x += direction[0]
-        new_y += direction[1]
+        new_x += -direction[0]
+        new_y += -direction[1]
         move_player(self, new_x, new_y, duration_frames=8)
 
         if self.current_health <= 0:

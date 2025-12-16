@@ -278,8 +278,8 @@ class Enemy(Entity):
         self.hit_points -= final_damage
 
         new_x, new_y = self.get_grid_pos()
-        new_x += direction[0]
-        new_y += direction[1]
+        new_x += -direction[0]
+        new_y += -direction[1]
         move_entity(self, new_x, new_y, duration_frames=8)
 
         # Trigger visual feedback (e.g., color flash)
