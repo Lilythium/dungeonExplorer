@@ -74,8 +74,6 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
     GM.add_animation(player_visual_x_anim)
     GM.add_animation(player_visual_y_anim)
 
-    print(f"Player moving to ({new_grid_x}, {new_grid_y}) from visual offset ({start_visual_x}, {start_visual_y})")
-
 
 def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_complete_callback=None):
     """
@@ -92,12 +90,7 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_com
     slide_dx = target_grid_x - entity.start_grid_x
     slide_dy = target_grid_y - entity.start_grid_y
 
-    print(f"[MOVE DEBUG] Entity at ({entity.grid_x}, {entity.grid_y}) moving to ({target_grid_x}, {target_grid_y})")
-    print(f"[MOVE DEBUG] Slide delta: ({slide_dx}, {slide_dy})")
-    print(f"[MOVE DEBUG] Starting slide values: ({entity.slide_x}, {entity.slide_y})")
-
     def finalize_move():
-        print(f"[MOVE DEBUG] Finalizing move - current slide: ({entity.slide_x}, {entity.slide_y})")
 
         # Update logical grid position
         entity.grid_x = target_grid_x
@@ -112,8 +105,6 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_com
         entity.slide_x = 0.0
         entity.slide_y = 0.0
 
-        print(
-            f"[MOVE DEBUG] Move finalized - grid: ({entity.grid_x}, {entity.grid_y}), slide: ({entity.slide_x}, {entity.slide_y})")
         if on_complete_callback:
             on_complete_callback()
 

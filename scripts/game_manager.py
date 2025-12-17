@@ -75,7 +75,7 @@ class GameManager:
             print("[TURN DEBUG] No enemy turn needed, skipping")
             return
 
-        print("--- Turn Resolution (Post-Animation) ---")
+        print("--- Turn Resolution ---")
 
         # Reset the flag BEFORE processing enemy turns
         # This prevents enemy animations from triggering another handle_turn()
