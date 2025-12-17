@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2ad1ed3c-1420-4e84-96c1-423d4b2aabb2" name="Changes" comment="Added enemy turn logic">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

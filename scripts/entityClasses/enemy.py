@@ -193,7 +193,7 @@ class Enemy(Entity):
         if not self.patrol_route:
             return False
 
-        # --- 1. Check if we reached the current target point ---
+        # --- Check if we reached the current target point ---
         next_x, next_y = self.patrol_route[0]
 
         if self.grid_x == next_x and self.grid_y == next_y:
@@ -201,7 +201,7 @@ class Enemy(Entity):
             self.patrol_route.append(self.patrol_route.pop(0))
             next_x, next_y = self.patrol_route[0]  # New target
 
-        # --- 2. Calculate the single step towards the new target ---
+        # --- Calculate the single step towards the new target ---
         dx = next_x - self.grid_x
         dy = next_y - self.grid_y
 
@@ -216,7 +216,7 @@ class Enemy(Entity):
         target_x = self.grid_x + step_x
         target_y = self.grid_y + step_y
 
-        # --- 3. Check walkability and queue move ---
+        # --- Check walkability and queue move ---
         if GM.current_level.is_walkable(target_x, target_y):
             self.facing_dir = (target_x, target_y)
             return True
@@ -267,6 +267,13 @@ class Enemy(Entity):
 
         target_x, target_y = player_entity.get_grid_pos()
         origin_x, origin_y = self.get_grid_pos()
+
+        if target_x - self.grid_y != 0:
+            self.squash_x = 1.15
+            self.squash_y = 0.85
+        else:
+            self.squash_y = 1.15
+            self.squash_x = 0.85
 
         # --- LUNGE PHASE: Move 1/2 tile towards the player ---
         def lunge_complete_callback():
