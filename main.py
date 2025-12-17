@@ -2,6 +2,7 @@ from sys import exit
 
 import pygame
 
+from scripts.entityClasses.death_cloud_emitter import DeathCloudEmitter
 from scripts.entityClasses.player import Player
 from scripts.game_manager import GM
 from scripts.level import Level, levels
@@ -53,6 +54,7 @@ GM.current_level.set_initial_camera_position(initial_offset_x, initial_offset_y)
 
 player_group = pygame.sprite.GroupSingle(GM.player)
 GM.hud_manager = HUD_Manager(TILE_MAP_LOADER)
+GM.death_cloud = DeathCloudEmitter()
 # --- Game Loop ---
 while True:
     if GM.is_locked:
@@ -97,6 +99,7 @@ while True:
     # Draw Selector
     GM.player.draw_selector(screen)
 
+    GM.death_cloud.update_and_draw(screen)
     GM.hud_manager.draw(screen)
 
     # --- Update ---

@@ -116,46 +116,47 @@ class Player(Entity):
         attack_target = GM.current_level.get_enemy_at(new_x, new_y)
         if attack_target:
             self.attack_enemy(attack_target)
-        # --- Check for INTERACTION (Door/Chest) ---
-        if target_tile_index in Tile.get_selectable_tiles():
+        else:
+            # --- Check for INTERACTION (Door/Chest) ---
+            if target_tile_index in Tile.get_selectable_tiles():
 
-            animation_info = GM.current_level.process_action(new_x, new_y, target_tile_index)
+                animation_info = GM.current_level.process_action(new_x, new_y, target_tile_index)
 
-            if animation_info:
-                # Interaction succeeded (e.g., door animation started)
-                print(f"Player initiated action on tile ID {target_tile_index}.")
+                if animation_info:
+                    # Interaction succeeded (e.g., door animation started)
+                    print(f"Player initiated action on tile ID {target_tile_index}.")
+                    self.facing_dir = (0, 0)
+                    # Signal that enemy turns should process after animations
+                    GM.start_turn()
+                    return animation_info
+                else:
+                    # Action failed
+                    return False
+
+            # --- Check for MOVEMENT ---
+            if target_tile_index in Tile.get_walkable_tiles():
+
+                # --- Successful Move ---
+                print(f"Player moved to ({new_x}, {new_y}).")
+
+                move_player(self, new_x, new_y, duration_frames=10)
+                self.is_moving = True
+                if self.facing_dir[0] != 0:
+                    self.squash_y = 1.1
+                    self.squash_x = 0.9
+                else:
+                    self.squash_x = 1.1
+                    self.squash_y = 0.9
                 self.facing_dir = (0, 0)
+
                 # Signal that enemy turns should process after animations
                 GM.start_turn()
-                return animation_info
+                return True
+
+            # --- Handle Blocked Actions ---
             else:
-                # Action failed
+                print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
                 return False
-
-        # --- Check for MOVEMENT ---
-        if target_tile_index in Tile.get_walkable_tiles():
-
-            # --- Successful Move ---
-            print(f"Player moved to ({new_x}, {new_y}).")
-
-            move_player(self, new_x, new_y, duration_frames=10)
-            self.is_moving = True
-            if self.facing_dir[0] != 0:
-                self.squash_y = 1.1
-                self.squash_x = 0.9
-            else:
-                self.squash_x = 1.1
-                self.squash_y = 0.9
-            self.facing_dir = (0, 0)
-
-            # Signal that enemy turns should process after animations
-            GM.start_turn()
-            return True
-
-        # --- Handle Blocked Actions ---
-        else:
-            print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
-            return False
 
     def attack_enemy(self, enemy):
         enemy.take_damage(self.attack_dmg, self.facing_dir)

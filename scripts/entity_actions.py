@@ -77,7 +77,7 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
     print(f"Player moving to ({new_grid_x}, {new_grid_y}) from visual offset ({start_visual_x}, {start_visual_y})")
 
 
-def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
+def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_complete_callback=None):
     """
     Smoothly animates an entity from current grid position to target grid position
     by animating the internal slide properties.
@@ -114,6 +114,8 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12):
 
         print(
             f"[MOVE DEBUG] Move finalized - grid: ({entity.grid_x}, {entity.grid_y}), slide: ({entity.slide_x}, {entity.slide_y})")
+        if on_complete_callback:
+            on_complete_callback()
 
     # --- Create Slide Animation ---
     offset_x_animation = InterpolationAnimation(

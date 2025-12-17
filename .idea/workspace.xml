@@ -5,9 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2ad1ed3c-1420-4e84-96c1-423d4b2aabb2" name="Changes" comment="Added enemy turn logic">
+      <change afterPath="$PROJECT_DIR$/scripts/entityClasses/death_cloud_emitter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/enemy.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/entityClasses/player.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entityClasses/player.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/entity_actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/entity_actions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/game_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/game_manager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,17 +37,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.level.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.player.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/samue/Documents/Python Scripts/dungeonExplorer/main.py"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.level.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.player.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/samue/Documents/Python Scripts/dungeonExplorer/main.py&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\samue\Documents\Python Scripts\dungeonExplorer\graphics" />

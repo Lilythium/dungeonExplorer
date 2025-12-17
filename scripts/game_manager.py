@@ -16,6 +16,7 @@ class GameManager:
             # Initialize core game attributes
             cls._instance.current_level = None
             cls._instance.player = None
+            cls._instance.death_cloud = None
             cls._instance.render_tile_size = 0
             cls._instance.screen_width = 0
             cls._instance.screen_height = 0

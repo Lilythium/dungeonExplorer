@@ -1,3 +1,5 @@
+import random
+
 import pygame
 
 from scripts.entity_actions import move_entity
@@ -91,8 +93,7 @@ class Enemy(Entity):
                 tile_id = level.get_tile_at(current_x, current_y)
                 walkable = Tile.get_walkable_tiles()
                 selectable = Tile.get_selectable_tiles()
-                enemies = Tile.get_enemy_tiles()
-                if tile_id not in walkable and tile_id not in selectable and tile_id not in enemies:
+                if tile_id not in walkable and tile_id not in selectable and tile_id:
                     # TODO: may want to create a set of tiles that do block vision
                     return False  # Vision is blocked
 
@@ -154,9 +155,13 @@ class Enemy(Entity):
         dx = player_x - enemy_x
         dy = player_y - enemy_y
 
-        # Check if the player is adjacent (ready for attack)
-        if abs(dx) <= 1 and abs(dy) <= 1 and (abs(dx) + abs(dy)) > 0:
-            # Player is adjacent - Queue the attack
+        # Check if the player is adjacent (cardinal directions only - no diagonals)
+        # Player must be exactly 1 tile away in EITHER x OR y (not both)
+        manhattan_distance = abs(dx) + abs(dy)
+        is_cardinal_adjacent = manhattan_distance == 1
+
+        if is_cardinal_adjacent:
+            # Player is adjacent in a cardinal direction - Queue the attack
             self.ai_state = "ATTACK"
             # Set facing_dir to the player's position for perform_queued_action to reference
             self.facing_dir = (player_x, player_y)
@@ -225,7 +230,6 @@ class Enemy(Entity):
         This function either starts an attack sequence or initiates an animated movement
         via the EntityActions system.
         """
-        # Safety check: If already moving, prevent new action.
         if self.is_moving:
             return False
 
@@ -278,19 +282,23 @@ class Enemy(Entity):
         self.hit_points -= final_damage
 
         new_x, new_y = self.get_grid_pos()
-        new_x += -direction[0]
-        new_y += -direction[1]
-        move_entity(self, new_x, new_y, duration_frames=8)
-
-        # Trigger visual feedback (e.g., color flash)
-
+        new_x += direction[0]
+        new_y += direction[1]
         if self.hit_points <= 0:
-            self.die()
+            move_entity(self, new_x, new_y, duration_frames=8, on_complete_callback=self.die)
+        else:
+            move_entity(self, new_x, new_y, duration_frames=8)
 
     def die(self):
         """
         Handles the enemy's death sequence and removal from the level.
         """
+
+        if hasattr(GM, 'death_cloud') and GM.death_cloud:
+            explosion_pos = self.rect.center
+            particle_variation = random.randint(-3, 3)
+            GM.death_cloud.burst(explosion_pos, num_particles=15 + particle_variation)
+
         self.is_alive = False
         self.kill()
 
