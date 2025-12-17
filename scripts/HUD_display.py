@@ -1,6 +1,6 @@
 import pygame
 
-from scripts.animation import EntityFrameAnimation
+from scripts.animation import EntityFrameAnimation, AnimationManager
 from scripts.game_manager import GM
 from scripts.support import SpriteSheet
 
@@ -14,9 +14,28 @@ class HUD_Manager:
     def __init__(self, spritesheet_loader):
         self.spritesheet_loader = spritesheet_loader
 
+        # Separate animation manager for HUD (doesn't lock game state)
+        self.hud_animation_manager = AnimationManager()
+
         # --- Create and manage the HealthBar ---
         self.health_bar = HealthBar(
             spritesheet_loader=self.spritesheet_loader,
+            hud_animation_manager=self.hud_animation_manager,  # Pass the HUD-specific manager
+            start_x=10,
+            start_y=10
+        )
+
+    def reset(self):
+        """
+        Reset HUD state when starting a new game.
+        Useful for clearing animations and resetting to initial state.
+        """
+        # Clear any ongoing HUD animations
+        self.hud_animation_manager.clear_all()
+        # Recreate health bar with current player health
+        self.health_bar = HealthBar(
+            spritesheet_loader=self.spritesheet_loader,
+            hud_animation_manager=self.hud_animation_manager,
             start_x=10,
             start_y=10
         )
@@ -34,12 +53,14 @@ class HUD_Manager:
 
     def update(self):
         """Updates all animated HUD elements (delegated)."""
+        # Update HUD animations (doesn't affect game state)
+        self.hud_animation_manager.update()
         # Update the Health Bar
         self.health_bar.update()
 
 
 class Heart(pygame.sprite.Sprite):
-    def __init__(self, position: tuple[int, int], spritesheet_loader):
+    def __init__(self, position: tuple[int, int], spritesheet_loader, hud_animation_manager):
         super().__init__()
         self.rect = pygame.Rect(position, (GM.render_tile_size, GM.render_tile_size))
 
@@ -60,6 +81,9 @@ class Heart(pygame.sprite.Sprite):
         self.image = pygame.Surface((GM.render_tile_size, GM.render_tile_size),
                                     pygame.SRCALPHA)  # Start as blank/transparent
         self.kill_switch_active: bool = False  # Used to kill the sprite on final empty state
+
+        # Reference to HUD animation manager (not GameManager)
+        self.hud_animation_manager = hud_animation_manager
 
     def spawn(self, on_sequence_complete=None):
         """Plays the spawn animation and sets the heart to 'full'."""
@@ -85,7 +109,8 @@ class Heart(pygame.sprite.Sprite):
             on_complete_callback=on_spawn_complete
         )
 
-        GM.add_animation(spawn_animation)
+        # Use HUD animation manager, not GameManager
+        self.hud_animation_manager.add_animation(spawn_animation)
 
     def empty(self, remove_from_group: bool = False, blinks_remaining: int = 1):
         """Plays the blink animation and sets the heart to 'empty'."""
@@ -116,7 +141,8 @@ class Heart(pygame.sprite.Sprite):
             on_complete_callback=on_blink_complete
         )
 
-        GM.add_animation(blink_animation)
+        # Use HUD animation manager, not GameManager
+        self.hud_animation_manager.add_animation(blink_animation)
 
     def update(self):
         pass
@@ -127,9 +153,12 @@ class HealthBar:
     Manages a group of Heart sprites
     """
 
-    def __init__(self, spritesheet_loader, start_x=10, start_y=10):
+    def __init__(self, spritesheet_loader, hud_animation_manager, start_x=10, start_y=10):
         self.player = GM.player
         self.spritesheet_loader = spritesheet_loader
+
+        # Store HUD animation manager reference
+        self.hud_animation_manager = hud_animation_manager
 
         self.max_health = self.player.max_health
         self.num_hearts = self.max_health
@@ -154,7 +183,8 @@ class HealthBar:
             # Instantiate the Heart using the class reference passed in
             new_heart = Heart(
                 position=(x, y),
-                spritesheet_loader=self.spritesheet_loader
+                spritesheet_loader=self.spritesheet_loader,
+                hud_animation_manager=self.hud_animation_manager  # Pass HUD animation manager
             )
             self.hearts.append(new_heart)
             self.heart_group.add(new_heart)
@@ -162,6 +192,10 @@ class HealthBar:
             # Start all hearts blank
             new_heart.image = pygame.Surface((GM.render_tile_size, GM.render_tile_size), pygame.SRCALPHA)
             new_heart.state = 'blank'
+
+    def start_initial_animation(self):
+        """Start the initial spawn animation for the hearts."""
+        self._initial_spawn_sequence(0)
 
     def _initial_spawn_sequence(self, index: int):
         """

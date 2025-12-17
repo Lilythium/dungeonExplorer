@@ -114,7 +114,12 @@ class Enemy(Entity):
     def take_turn(self, player_grid_pos: tuple[int, int]):
         """
         The main AI driver. Called during the enemy turn phase to decide the next action.
+        Returns True if an action was taken, False otherwise.
         """
+        # Check if game is in enemy turn state
+        if not GM.state_machine or GM.state_machine.current_state.id != "enemy_turn":
+            return False
+
         if self.is_moving:
             print(f"[ENEMY DEBUG] Enemy at {self.get_grid_pos()} is still moving")
             return False

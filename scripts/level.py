@@ -240,13 +240,16 @@ class Level:
         """
         The main AI driver for the level. Called by the GameManager once the
         player's turn is finished and animations are resolved.
+        Returns True if any enemy took an action, False otherwise.
         """
         if not self.enemies:
             print("[ENEMY DEBUG] No enemies to process")
-            return
+            return False
 
         player_pos = GM.player.get_grid_pos()
         print(f"[ENEMY DEBUG] Processing {len(self.enemies)} enemies")
+
+        any_actions_taken = False
 
         # Iterate over a copy of the group to allow removal (death) during iteration
         for enemy in list(self.enemies):
@@ -259,6 +262,7 @@ class Level:
                 action_taken = enemy.take_turn(player_pos)
 
                 if action_taken:
+                    any_actions_taken = True
                     print(f"[ENEMY DEBUG] Enemy took action")
                 else:
                     print(f"[ENEMY DEBUG] Enemy could not act")
@@ -267,3 +271,5 @@ class Level:
                     print(f"[ENEMY DEBUG] Enemy is dead, skipping")
                 if enemy.is_moving:
                     print(f"[ENEMY DEBUG] Enemy is still moving, skipping")
+
+        return any_actions_taken

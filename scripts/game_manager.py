@@ -25,8 +25,8 @@ class GameManager:
             cls._instance.animation_manager = AnimationManager()
             cls._instance.ANIMATION_DELAY_FRAMES = 30
 
-            # Flag to track if we should process enemy turns after animations
-            cls._instance.should_process_enemy_turn = False
+            # State machine (will be initialized in main.py)
+            cls._instance.state_machine = None
 
         return cls._instance
 
@@ -38,7 +38,6 @@ class GameManager:
     @is_locked.setter
     def is_locked(self, value):
         """Allows external code (like EntityActions) to set the lock state."""
-        # Setter writes directly to the AnimationManager's attribute
         self.animation_manager.is_locked = bool(value)
 
     def add_animation(self, animation: Animation):
@@ -48,44 +47,51 @@ class GameManager:
     def resolve_animations(self):
         """
         Called every frame to update all active animations.
-        Returns: True if animations are still running.
+        Handles state transitions when animations complete.
         """
         still_animating = self.animation_manager.update()
 
-        # If all animations complete, trigger turn resolution
-        if not still_animating and self.should_process_enemy_turn:
-            self.handle_turn()
+        if not self.state_machine:
+            return still_animating
+
+        current_state = self.state_machine.current_state.id
+
+        # Check if animations are complete and we're in an animating state
+        if not still_animating:
+            if current_state == "player_animating":
+                print("[STATE] Player animations complete, moving to enemy turn")
+                self.state_machine.player_animations_complete()
+                # Start enemy turns immediately
+                self.start_enemy_turn()
+
+            elif current_state == "enemy_animating":
+                print("[STATE] Enemy animations complete, moving to player turn")
+                self.state_machine.enemy_animations_complete()
 
         return still_animating
 
-    def start_turn(self):
-        """
-        Called by the player when they perform an action.
-        This flags that enemy turns should be processed after animations complete.
-        """
-        print("[TURN DEBUG] Player action initiated - enemy turns will process after animations")
-        self.should_process_enemy_turn = True
+    def start_enemy_turn(self):
+        """Start enemy turn processing."""
+        print("[STATE] Starting enemy turn")
 
-    def handle_turn(self):
-        """
-        Called after the player's action and ALL animations are resolved.
-        This is the global trigger for the rest of the game world's actions.
-        """
-        if not self.should_process_enemy_turn:
-            print("[TURN DEBUG] No enemy turn needed, skipping")
-            return
-
-        print("--- Turn Resolution ---")
-
-        # Reset the flag BEFORE processing enemy turns
-        # This prevents enemy animations from triggering another handle_turn()
-        self.should_process_enemy_turn = False
-
-        # Execute enemy turns
+        # Execute enemy actions
         if self.current_level:
-            self.current_level.execute_enemy_turns()
+            enemy_actions_taken = self.current_level.execute_enemy_turns()
 
-        print("--- Turn End ---")
+            # If enemies took actions, transition to enemy_animating
+            # If no actions taken, go back to player turn
+            if enemy_actions_taken:
+                print("[STATE] Enemy actions taken, moving to enemy animating")
+                self.state_machine.enemy_actions_start()
+            else:
+                print("[STATE] No enemy actions, moving back to player turn")
+                self.state_machine.enemy_animations_complete()
+
+    def player_perform_action(self):
+        """Called when player performs an action to trigger state transition."""
+        if self.state_machine and self.state_machine.current_state.id == "player_turn":
+            print("[STATE] Player action, moving to player animating state")
+            self.state_machine.player_action()
 
 
 # Create a globally accessible instance of the Manager
