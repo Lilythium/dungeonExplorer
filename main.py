@@ -1,4 +1,3 @@
-# main.py - Updated version
 from sys import exit
 
 import pygame
@@ -93,7 +92,8 @@ def handle_player_input(event):
 
     # Handle pause for all states
     if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-        if current_state in ["player_turn", "enemy_turn", "animating"]:
+        # FIXED: Use the correct state names
+        if current_state in ["player_turn", "enemy_turn", "player_animating", "enemy_animating"]:
             state_machine.pause_game()
         elif current_state == "pause_screen":
             state_machine.unpause_game()
@@ -103,6 +103,7 @@ def handle_player_input(event):
 while True:
     # Handle events based on current state
     current_state = state_machine.current_state.id
+
     if current_state == "start_screen":
         # Draw start screen and wait for input
         for event in pygame.event.get():
@@ -118,92 +119,84 @@ while True:
         # Add your start screen drawing code here
 
     elif current_state == "player_turn":
+        # First check for buffered direction from key presses during non-player turns
+        if state_machine.has_buffered_direction():
+            buffered_direction = state_machine.get_buffered_direction()
+            GM.player.facing_dir = buffered_direction
+
+        # Then check for currently held direction keys
+        held_direction = state_machine.update_held_direction()
+        if held_direction:
+            GM.player.facing_dir = held_direction
+
+        # Then process new inputs
         if not GM.is_locked:
             for event in pygame.event.get():
-
                 if event.type == pygame.QUIT:
                     pygame.quit()
-
                     exit()
-
                 handle_player_input(event)
 
-        # Update HUD and player
-
         GM.hud_manager.update()
-
         player_group.update()
-    elif current_state == "player_animating":
+
+    elif current_state == "player_animating":  # <-- FIXED: This should be at the same level as other elif statements
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 state_machine.pause_game()
+            elif event.type == pygame.KEYDOWN:
+                # Only buffer direction keys, not action keys
+                state_machine.buffer_direction_key(event)
 
         GM.hud_manager.update()
         GM.resolve_animations()
+
     elif current_state == "enemy_turn":
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 state_machine.pause_game()
+            elif event.type == pygame.KEYDOWN:
+                # Only buffer direction keys, not action keys
+                state_machine.buffer_direction_key(event)
 
         GM.hud_manager.update()
+
     elif current_state == "enemy_animating":
-        # Enemy animations are playing
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
                 pygame.quit()
-
                 exit()
-
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 state_machine.pause_game()
-        # Update HUD during enemy animations
+            elif event.type == pygame.KEYDOWN:
+                # Only buffer direction keys, not action keys
+                state_machine.buffer_direction_key(event)
+
         GM.hud_manager.update()
-        # Resolve animations (this will trigger state transition when done)
         GM.resolve_animations()
+
     elif current_state == "pause_screen":
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
                 pygame.quit()
-
                 exit()
-
             if event.type == pygame.KEYDOWN:
-
                 if event.key == pygame.K_ESCAPE:
                     state_machine.unpause_game()
 
         GM.hud_manager.update()
-    elif current_state == "start_screen":
-        for event in pygame.event.get():
-
-            if event.type == pygame.QUIT:
-                pygame.quit()
-
-                exit()
-
-            if event.type == pygame.KEYDOWN:
-
-                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                    GM.hud_manager.reset()
-                    state_machine.start_game()
 
     elif current_state == "game_over":
         # Game over screen - don't update HUD
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
                 pygame.quit()
-
                 exit()
 
         # Draw game over screen
@@ -250,3 +243,13 @@ while True:
     # --- Update Display ---
     pygame.display.update()
     clock.tick(60)
+
+"""
+TODO: 
+- add buffer input (directionally only) in the pause state
+- Add menus:
+    - Start screen
+    - Pause screen
+    - Game over screen
+
+"""

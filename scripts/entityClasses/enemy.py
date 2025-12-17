@@ -121,7 +121,7 @@ class Enemy(Entity):
             return False
 
         if self.is_moving:
-            print(f"[ENEMY DEBUG] Enemy at {self.get_grid_pos()} is still moving")
+            print(f"[ENEMY DEBUG] {self.__class__.__name__} at {self.get_grid_pos()} is still moving")
             return False
 
         # State Transition Check
