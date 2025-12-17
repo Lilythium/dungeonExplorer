@@ -168,6 +168,7 @@ class Player(Entity):
         new_y += -direction[1]
         move_player(self, new_x, new_y, duration_frames=8)
         self.start_damage_flash()
+        GM.hud_manager.update_health(self.current_health)
 
         if self.current_health <= 0:
             self.game_over()

@@ -108,7 +108,6 @@ while True:
 
 """
 TODO for 17th:
-add take damage effect (flash sprite either invisible or replace with a red/white mask for a few frames)
 make taking damage actually affect the players health 
 implement game states (start screen, level, game over screen)
 """

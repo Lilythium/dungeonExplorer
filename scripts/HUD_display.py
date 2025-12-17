@@ -89,9 +89,10 @@ class Heart(pygame.sprite.Sprite):
 
     def empty(self, remove_from_group: bool = False):
         """Plays the blink animation and sets the heart to 'empty'."""
-        if self.is_animating: return
+        if self.is_animating:
+            return
         self.is_animating = True
-        self.kill_switch_active = remove_from_group  # If true, sprite will be removed on finish
+        self.kill_switch_active = remove_from_group
 
         def on_blink_complete():
             self.is_animating = False
@@ -100,7 +101,7 @@ class Heart(pygame.sprite.Sprite):
             self.state = 'empty'
 
             if self.kill_switch_active:
-                self.kill()  # Remove from sprite group if needed (e.g., when max health decreases)
+                self.kill()  # Remove from sprite group if max health decreases
 
         # Create a frame sequence animation (blinking)
         blink_animation = EntityFrameAnimation(
