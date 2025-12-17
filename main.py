@@ -108,6 +108,10 @@ while True:
 
 """
 TODO for 17th:
-make taking damage actually affect the players health 
 implement game states (start screen, level, game over screen)
+refactor turn system to allow for entities to move any number of squares in X radius based on a move_speed stat
+    turn should consist of 2 phases for each entity 1. move 2. Attack OR Interact OR use consumables
+    enemy turns will likely need to happen 1 at a time, making sure to skip enemies that arent in the camera 
+    ^(this doesnt matter yet but it will)
+    
 """

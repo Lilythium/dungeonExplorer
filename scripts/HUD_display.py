@@ -87,7 +87,7 @@ class Heart(pygame.sprite.Sprite):
 
         GM.add_animation(spawn_animation)
 
-    def empty(self, remove_from_group: bool = False):
+    def empty(self, remove_from_group: bool = False, blinks_remaining: int = 1):
         """Plays the blink animation and sets the heart to 'empty'."""
         if self.is_animating:
             return
@@ -96,19 +96,23 @@ class Heart(pygame.sprite.Sprite):
 
         def on_blink_complete():
             self.is_animating = False
-            # Replace the animation image with the static empty image
-            self.image = self.image_empty
-            self.state = 'empty'
 
-            if self.kill_switch_active:
-                self.kill()  # Remove from sprite group if max health decreases
+            if blinks_remaining > 0:
+                self.empty(remove_from_group, blinks_remaining - 1)
+            else:
+                # Replace the animation image with the static empty image
+                self.image = self.image_empty
+                self.state = 'empty'
+
+                if self.kill_switch_active:
+                    self.kill()  # Remove from sprite group if max health decreases
 
         # Create a frame sequence animation (blinking)
         blink_animation = EntityFrameAnimation(
             target_object=self,
             property_name='image',
             spritesheet=self.heart_blink_sheet,
-            frame_duration=2,
+            frame_duration=4,
             on_complete_callback=on_blink_complete
         )
 
@@ -188,7 +192,7 @@ class HealthBar:
                     heart.spawn()
             else:
                 if heart.state != 'empty':
-                    heart.empty()
+                    heart.empty(False, 2)
 
     def draw(self, display_surface):
         """Draws all heart sprites to the screen."""
