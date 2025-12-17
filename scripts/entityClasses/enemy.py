@@ -238,7 +238,7 @@ class Enemy(Entity):
 
         # --- Attack Check ---
         if (target_x, target_y) == player.get_grid_pos():
-            self.attack_player(player)
+            self._do_attack_lunge(player)
             self.ai_state = "CHASE"
             return True  # Turn consumed
 
@@ -258,20 +258,60 @@ class Enemy(Entity):
 
         return False
 
-    def attack_player(self, player_entity: Player):
+    def _do_attack_lunge(self, player_entity: Player):
+        """
+        Executes the two-part attack animation: Lunge -> Damage -> Retreat.
+        """
+        if self.is_moving:
+            return
+
+        target_x, target_y = player_entity.get_grid_pos()
+        origin_x, origin_y = self.get_grid_pos()
+
+        # --- LUNGE PHASE: Move 1/2 tile towards the player ---
+        def lunge_complete_callback():
+            # Apply damage to the player
+            self.attack_player(player_entity, origin_x, origin_y)
+
+            # --- RETREAT PHASE: Move back 1/2 tile ---
+
+            # The destination for the retreat is the enemy's starting position
+            retreat_x, retreat_y = origin_x, origin_y
+
+            # The final callback ends the move state
+            def retreat_complete_callback():
+                self.is_moving = False
+                # Ensure the entity lands back exactly on its original grid spot
+                self.set_grid_pos(origin_x, origin_y)
+
+            move_entity(
+                entity=self,
+                target_grid_x=retreat_x,
+                target_grid_y=retreat_y,
+                duration_frames=10,
+                on_complete_callback=retreat_complete_callback
+            )
+
+        move_entity(
+            entity=self,
+            target_grid_x=target_x,
+            target_grid_y=target_y,
+            duration_frames=4,
+            on_complete_callback=lunge_complete_callback
+        )
+
+        self.is_moving = True
+        return True
+
+    def attack_player(self, player_entity: Player, origin_x, origin_y):
         """
         Initiates a combat sequence against the player.
         """
-
         damage = 1
-        origin_x, origin_y = self.get_grid_pos()
         destination_x, destination_y = player_entity.get_grid_pos()
         attack_dir = (origin_x - destination_x, origin_y - destination_y)
         # Apply damage to the player
         player_entity.take_damage(damage, attack_dir)
-
-        # Trigger attack animation/sound effects/hit feedback
-        # GM.event_system.trigger_feedback("ATTACK", self, player_entity)
 
     def take_damage(self, amount: int, direction: tuple[int, int]):
         """
