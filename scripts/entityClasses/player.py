@@ -22,14 +22,13 @@ class Player(Entity):
         self.selector = self.tile_map_loader.get_tile(Tile.SELECTOR.value)
         self.selector_rect = self.selector.get_rect()
 
-        self.facing_dir = (0, 0)  # (dx, dy) vector for targeting/movement
+        self.facing_dir = (0, 0)
 
         # --- Positioning ---
         self.rect.centerx = GM.screen_width // 2
         self.rect.centery = GM.screen_height // 2
 
         # --- Visual Animation State ---
-        # These properties will be animated by EntityActions.move_entity
         self.offset_x_visual = float(self.grid_x)
         self.offset_y_visual = float(self.grid_y)
         self.squash_x = 1.0
@@ -68,7 +67,6 @@ class Player(Entity):
 
     def get_colored_selector(self, colour):
         """Creates a temporary, colored version of the selector sprite."""
-        # NOTE: its probably more efficient to just store these copies somewhere
         colored_selector = self.selector.copy()
         colored_selector.fill(colour, special_flags=pygame.BLEND_MULT)
         return colored_selector
@@ -114,6 +112,11 @@ class Player(Entity):
         attack_target = GM.current_level.get_enemy_at(new_x, new_y)
         if attack_target:
             self.attack_enemy(attack_target)
+            # --- FIXED: Reset facing_dir AFTER attack, not before ---
+            self.facing_dir = (0, 0)
+            # --- Signal state transition ---
+            GM.player_perform_action()
+            return True
         else:
             # --- Check for INTERACTION (Door/Chest) ---
             if target_tile_index in Tile.get_selectable_tiles():
@@ -121,20 +124,16 @@ class Player(Entity):
                 animation_info = GM.current_level.process_action(new_x, new_y, target_tile_index)
 
                 if animation_info:
-                    # Interaction succeeded (e.g., door animation started)
                     print(f"Player initiated action on tile ID {target_tile_index}.")
                     self.facing_dir = (0, 0)
-                    # Signal state transition
                     GM.player_perform_action()
                     return animation_info
                 else:
-                    # Action failed
                     return False
 
             # --- Check for MOVEMENT ---
             if target_tile_index in Tile.get_walkable_tiles():
 
-                # --- Successful Move ---
                 print(f"Player moved to ({new_x}, {new_y}).")
 
                 move_player(self, new_x, new_y, duration_frames=10)
@@ -147,7 +146,6 @@ class Player(Entity):
                     self.squash_y = 0.9
                 self.facing_dir = (0, 0)
 
-                # Signal state transition
                 GM.player_perform_action()
                 return True
 
@@ -159,12 +157,74 @@ class Player(Entity):
     def attack_enemy(self, enemy):
         enemy.take_damage(self.attack_dmg, self.facing_dir)
 
-    def take_damage(self, amount: int, direction: tuple[int, int]):
+    def take_damage(self, amount: int, direction: tuple[int, int], suppress_state_transition: bool = False):
+        """
+        Player takes damage and gets knocked back.
+
+        Args:
+            amount: Damage to take
+            direction: Direction of knockback
+            suppress_state_transition: If True, don't trigger state transition (used during enemy turn)
+        """
         self.current_health -= amount
         new_x, new_y = self.get_grid_pos()
         new_x += -direction[0]
         new_y += -direction[1]
-        move_player(self, new_x, new_y, duration_frames=8)
+
+        # --- Move player without triggering state transition ---
+        if suppress_state_transition:
+            # Manually create the animation without calling move_player
+            from scripts.animation import InterpolationAnimation
+
+            start_visual_x = self.offset_x_visual
+            start_visual_y = self.offset_y_visual
+
+            self.grid_x = new_x
+            self.grid_y = new_y
+            self.is_moving = True
+
+            duration_frames = 8
+
+            # Calculate camera target
+            player_pixel_x = new_x * GM.render_tile_size
+            player_pixel_y = new_y * GM.render_tile_size
+            target_offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
+            target_offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
+
+            def on_movement_complete():
+                self.sync_visual_offset()
+                self.is_moving = False
+
+            # --- Animate visual offset ---
+            player_visual_x_anim = InterpolationAnimation(
+                target_object=self,
+                property_name='offset_x_visual',
+                start_value=start_visual_x,
+                end_value=float(new_x),
+                duration_frames=duration_frames,
+                easing_function=InterpolationAnimation.ease_out_quad,
+                on_complete_callback=on_movement_complete
+            )
+
+            player_visual_y_anim = InterpolationAnimation(
+                target_object=self,
+                property_name='offset_y_visual',
+                start_value=start_visual_y,
+                end_value=float(new_y),
+                duration_frames=duration_frames,
+                easing_function=InterpolationAnimation.ease_out_quad
+            )
+
+            # --- Animate camera ---
+            GM.current_level.animate_camera_to(target_offset_x, target_offset_y, duration_frames=duration_frames)
+
+            # Add animations
+            GM.add_animation(player_visual_x_anim)
+            GM.add_animation(player_visual_y_anim)
+        else:
+            # Normal player turn damage - use move_player which triggers state transition
+            move_player(self, new_x, new_y, duration_frames=8)
+
         self.start_damage_flash()
         GM.hud_manager.update_health(self.current_health)
 
@@ -181,16 +241,15 @@ class Player(Entity):
         self.update_damage_flash()
 
         if not self.is_flashing:
-            # Apply squash & stretch if moving
+            # --- Apply squash & stretch if moving ---
             if self.is_moving and (self.squash_x != 1.0 or self.squash_y != 1.0):
                 new_width = int(self.original_image.get_width() * self.squash_x)
                 new_height = int(self.original_image.get_height() * self.squash_y)
                 self.image = pygame.transform.scale(self.original_image, (new_width, new_height))
             elif not self.is_moving:
-                # Reset to original image when not moving
                 self.image = self.original_image.copy()
 
-        # Keep player centered
+        # --- Keep player centered ---
         self.rect = self.image.get_rect()
         self.rect.centerx = center_x
         self.rect.centery = center_y

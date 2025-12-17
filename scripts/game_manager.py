@@ -13,7 +13,7 @@ class GameManager:
         if cls._instance is None:
             cls._instance = super(GameManager, cls).__new__(cls)
 
-            # Initialize core game attributes
+            # --- Initialize core game attributes ---
             cls._instance.current_level = None
             cls._instance.player = None
             cls._instance.death_cloud = None
@@ -21,11 +21,11 @@ class GameManager:
             cls._instance.screen_width = 0
             cls._instance.screen_height = 0
 
-            # Initialize animation manager
+            # --- Initialize animation manager ---
             cls._instance.animation_manager = AnimationManager()
             cls._instance.ANIMATION_DELAY_FRAMES = 30
 
-            # State machine (will be initialized in main.py)
+            # --- State machine (will be initialized in main.py) ---
             cls._instance.state_machine = None
 
         return cls._instance
@@ -56,12 +56,12 @@ class GameManager:
 
         current_state = self.state_machine.current_state.id
 
-        # Check if animations are complete and we're in an animating state
+        # --- Check if animations are complete and we're in an animating state ---
         if not still_animating:
             if current_state == "player_animating":
                 print("[STATE] Player animations complete, moving to enemy turn")
                 self.state_machine.player_animations_complete()
-                # Start enemy turns immediately
+                # --- Start enemy turns immediately ---
                 self.start_enemy_turn()
 
             elif current_state == "enemy_animating":
@@ -74,18 +74,24 @@ class GameManager:
         """Start enemy turn processing."""
         print("[STATE] Starting enemy turn")
 
-        # Execute enemy actions
+        # --- Execute enemy actions ---
         if self.current_level:
             enemy_actions_taken = self.current_level.execute_enemy_turns()
 
-            # If enemies took actions, transition to enemy_animating
-            # If no actions taken, go back to player turn
+            # --- If enemies took actions, transition to enemy_animating ---
             if enemy_actions_taken:
                 print("[STATE] Enemy actions taken, moving to enemy animating")
                 self.state_machine.enemy_actions_start()
             else:
-                print("[STATE] No enemy actions, moving back to player turn")
-                self.state_machine.enemy_animations_complete()
+                # --- Check if there are any animations still running ---
+                # (e.g., enemy knockback from player's attack)
+                if self.animation_manager.is_animating():
+                    print("[STATE] No new enemy actions, but animations still running - moving to enemy animating")
+                    self.state_machine.enemy_actions_start()
+                else:
+                    # --- No actions and no animations, go directly back to player turn ---
+                    print("[STATE] No enemy actions and no animations, moving directly back to player turn")
+                    self.state_machine.no_enemy_actions()
 
     def player_perform_action(self):
         """Called when player performs an action to trigger state transition."""
@@ -94,5 +100,5 @@ class GameManager:
             self.state_machine.player_action()
 
 
-# Create a globally accessible instance of the Manager
+# --- Create a globally accessible instance of the Manager ---
 GM = GameManager()

@@ -18,20 +18,32 @@ class GameState(StateMachine):
     player_animations_complete = player_animating.to(enemy_turn)
     enemy_actions_start = enemy_turn.to(enemy_animating)
     enemy_animations_complete = enemy_animating.to(player_turn)
-    pause_game = player_turn.to(pause_screen) | enemy_turn.to(pause_screen) | player_animating.to(
-        pause_screen) | enemy_animating.to(pause_screen)
+
+    # --- FIXED: Add direct transition from enemy_turn to player_turn when no actions taken ---
+    no_enemy_actions = enemy_turn.to(player_turn)
+
+    pause_game = (
+            player_turn.to(pause_screen) |
+            enemy_turn.to(pause_screen) |
+            player_animating.to(pause_screen) |
+            enemy_animating.to(pause_screen)
+    )
     unpause_game = (
             pause_screen.to(player_turn, cond="was_player_turn") |
             pause_screen.to(enemy_turn, cond="was_enemy_turn") |
             pause_screen.to(player_animating, cond="was_player_animating") |
             pause_screen.to(enemy_animating, cond="was_enemy_animating")
     )
-    game_over_transition = player_turn.to(game_over) | enemy_turn.to(game_over) | player_animating.to(
-        game_over) | enemy_animating.to(game_over)
+    game_over_transition = (
+            player_turn.to(game_over) |
+            enemy_turn.to(game_over) |
+            player_animating.to(game_over) |
+            enemy_animating.to(game_over)
+    )
 
     def __init__(self):
         self.last_state = None
-        self.buffered_direction = None  # Store direction as (dx, dy) tuple
+        self.buffered_direction = None
         super().__init__()
 
     # --- Logic ---
@@ -61,10 +73,8 @@ class GameState(StateMachine):
         Store a direction key to be processed when returning to player_turn.
         Direction keys are buffered during non-player-turn states.
         """
-        # Buffer input during states where player cannot act
         if self.current_state.id in ["player_animating", "enemy_turn", "enemy_animating"]:
             if event.type == pygame.KEYDOWN:
-                # Convert key to direction tuple
                 direction = self._key_to_direction(event.key)
                 if direction:
                     self.buffered_direction = direction
@@ -102,7 +112,7 @@ class GameState(StateMachine):
         """
         keys = pygame.key.get_pressed()
 
-        # Check in priority order (right, left, down, up)
+        # --- Check in priority order ---
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             return 1, 0
         elif keys[pygame.K_LEFT] or keys[pygame.K_a]:

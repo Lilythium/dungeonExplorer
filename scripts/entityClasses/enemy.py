@@ -14,25 +14,24 @@ class Enemy(Entity):
         super().__init__(tile_map_loader)
 
         # --- Essential Game References ---
-        self.tile_map_loader = tile_map_loader  # Reference to the tile/sprite loading utility
+        self.tile_map_loader = tile_map_loader
 
         # --- Rendering and Pygame Setup ---
-        self.image = self.tile_map_loader.get_tile(0)  # Placeholder, load actual enemy tile
+        self.image = self.tile_map_loader.get_tile(0)
         self.original_image = self.image.copy()
-        self.rect = self.image.get_rect()  # Pygame rectangle for drawing/positioning
+        self.rect = self.image.get_rect()
 
-        # --- Logical Grid Position (Used for AI and turn-based logic) ---
+        # --- Logical Grid Position ---
         self.grid_x: int = spawn_x
         self.grid_y: int = spawn_y
-        self.rect.topleft = (spawn_x * GM.render_tile_size, spawn_y * GM.render_tile_size)  # Initial screen position
+        self.rect.topleft = (spawn_x * GM.render_tile_size, spawn_y * GM.render_tile_size)
 
-        # --- Visual Animation State (Used by EntityActions.move_entity) ---
-        # These track the fractional progress of the slide (0.0 to +/- 1.0)
+        # --- Visual Animation State ---
         self.slide_x: float = 0.0
         self.slide_y: float = 0.0
-        self.start_grid_x: int = self.grid_x  # The grid position before a move starts
+        self.start_grid_x: int = self.grid_x
         self.start_grid_y: int = self.grid_y
-        self.is_moving: bool = False  # Flag to lock AI turns during animation
+        self.is_moving: bool = False
 
         # --- Squish ---
         self.squash_x: float = 1.0
@@ -44,10 +43,10 @@ class Enemy(Entity):
         self.is_alive: bool = True
 
         # --- AI and Behavior ---
-        self.view_radius: int = 5  # How many tiles away the enemy can see the player
-        self.ai_state: str = "PATROL"  # Current state (e.g., "PATROL", "CHASE", "ATTACK")
-        self.patrol_route: list[tuple[int, int]] = []  # A list of (x, y) points to follow
-        self.turn_timer: int = 0  # Optional delay/cooldown between actions
+        self.view_radius: int = 5
+        self.ai_state: str = "PATROL"
+        self.patrol_route: list[tuple[int, int]] = []
+        self.turn_timer: int = 0
         self.facing_dir: tuple[int, int] = (0, 0)
 
     def can_see_player(self, player_grid_pos: tuple[int, int]) -> bool:
@@ -69,46 +68,32 @@ class Enemy(Entity):
             return False
 
         # --- Line of Sight (LOS) ---
-
-        # Determine step direction (always +1 or -1)
         step_x = 1 if player_x > current_x else -1
         step_y = 1 if player_y > current_y else -1
 
-        # The algorithm will loop through the major axis (the larger distance)
-        # to ensure it hits all tiles the line crosses.
-
-        # Error accumulation variable
         err = dx - dy
-
-        # Get the Level reference and blocking tiles list
-
         level = GM.current_level
 
-        # Loop until we reach the player's tile
         while current_x != player_x or current_y != player_y:
-
             # --- Check the CURRENT tile (before stepping) ---
-            # We don't check the enemy's starting tile, only the tiles in between.
             if current_x != self.grid_x or current_y != self.grid_y:
                 tile_id = level.get_tile_at(current_x, current_y)
                 walkable = Tile.get_walkable_tiles()
                 selectable = Tile.get_selectable_tiles()
                 if tile_id not in walkable and tile_id not in selectable and tile_id:
-                    # TODO: may want to create a set of tiles that do block vision
-                    return False  # Vision is blocked
+                    return False
 
             # --- Step toward the player using the error term ---
             e2 = 2 * err
 
-            if e2 > -dy:  # Move along the X axis
+            if e2 > -dy:
                 err -= dy
                 current_x += step_x
 
-            if e2 < dx:  # Move along the Y axis
+            if e2 < dx:
                 err += dx
                 current_y += step_y
 
-        # If the loop finished without hitting a blocking tile, the path is clear.
         return True
 
     def take_turn(self, player_grid_pos: tuple[int, int]):
@@ -116,7 +101,6 @@ class Enemy(Entity):
         The main AI driver. Called during the enemy turn phase to decide the next action.
         Returns True if an action was taken, False otherwise.
         """
-        # Check if game is in enemy turn state
         if not GM.state_machine or GM.state_machine.current_state.id != "enemy_turn":
             return False
 
@@ -124,18 +108,17 @@ class Enemy(Entity):
             print(f"[ENEMY DEBUG] {self.__class__.__name__} at {self.get_grid_pos()} is still moving")
             return False
 
-        # State Transition Check
+        # --- State Transition Check ---
         if self.can_see_player(player_grid_pos):
             self.ai_state = "CHASE"
         elif self.ai_state == "CHASE":
             self.ai_state = "PATROL"
 
-        # Execute Action Based on State
+        # --- Execute Action Based on State ---
         action_taken = False
         match self.ai_state:
             case "CHASE":
                 action_taken = self._do_chase(player_grid_pos)
-                # If an action was queued, execute it
                 if action_taken:
                     action_taken = self.perform_queued_action()
             case "PATROL":
@@ -143,7 +126,6 @@ class Enemy(Entity):
                 if action_taken:
                     action_taken = self.perform_queued_action()
             case "ATTACK":
-                # ATTACK state should be set by _do_chase if adjacent
                 action_taken = self.perform_queued_action()
 
         return action_taken
@@ -156,40 +138,31 @@ class Enemy(Entity):
         player_x, player_y = player_grid_pos
         enemy_x, enemy_y = self.grid_x, self.grid_y
 
-        # Determine the difference
         dx = player_x - enemy_x
         dy = player_y - enemy_y
 
-        # Check if the player is adjacent (cardinal directions only - no diagonals)
-        # Player must be exactly 1 tile away in EITHER x OR y (not both)
         manhattan_distance = abs(dx) + abs(dy)
         is_cardinal_adjacent = manhattan_distance == 1
 
         if is_cardinal_adjacent:
-            # Player is adjacent in a cardinal direction - Queue the attack
+            # --- Player is adjacent - Queue the attack ---
             self.ai_state = "ATTACK"
-            # Set facing_dir to the player's position for perform_queued_action to reference
             self.facing_dir = (player_x, player_y)
-            return True  # Action queued
+            return True
 
-        # Player is not adjacent - Queue a move
-
-        # Calculate the direction of the single best step
+        # --- Player is not adjacent - Queue a move ---
         target_x, target_y = enemy_x, enemy_y
 
         if abs(dx) >= abs(dy):
-            # Move along the X axis if it closes the distance
             target_x += (1 if dx > 0 else -1)
         else:
-            # Otherwise, move along the Y axis
             target_y += (1 if dy > 0 else -1)
 
-        # Check if the calculated target is walkable
         if GM.current_level.is_walkable(target_x, target_y):
             self.facing_dir = (target_x, target_y)
-            return True  # Move queued
+            return True
 
-        return False  # No action taken (e.g., path blocked)
+        return False
 
     def _do_patrol(self) -> bool:
         """
@@ -202,9 +175,8 @@ class Enemy(Entity):
         next_x, next_y = self.patrol_route[0]
 
         if self.grid_x == next_x and self.grid_y == next_y:
-            # We reached the point: Rotate the patrol route
             self.patrol_route.append(self.patrol_route.pop(0))
-            next_x, next_y = self.patrol_route[0]  # New target
+            next_x, next_y = self.patrol_route[0]
 
         # --- Calculate the single step towards the new target ---
         dx = next_x - self.grid_x
@@ -221,19 +193,15 @@ class Enemy(Entity):
         target_x = self.grid_x + step_x
         target_y = self.grid_y + step_y
 
-        # --- Check walkability and queue move ---
         if GM.current_level.is_walkable(target_x, target_y):
             self.facing_dir = (target_x, target_y)
             return True
 
-        return False  # Cannot move, patrol blocked or finished
+        return False
 
     def perform_queued_action(self):
         """
         Executes the queued action based on self.facing_dir.
-
-        This function either starts an attack sequence or initiates an animated movement
-        via the EntityActions system.
         """
         if self.is_moving:
             return False
@@ -245,20 +213,18 @@ class Enemy(Entity):
         if (target_x, target_y) == player.get_grid_pos():
             self._do_attack_lunge(player)
             self.ai_state = "CHASE"
-            return True  # Turn consumed
+            return True
 
         # --- Move Check and Execution ---
         if GM.current_level.is_walkable(target_x, target_y):
-            # check move direction for squash
-            if target_x - self.grid_y != 0:
+            # --- FIXED: Check move direction for squash ---
+            if target_x - self.grid_x != 0:  # Horizontal movement
                 self.squash_y = 1.1
                 self.squash_x = 0.9
-            else:
+            else:  # Vertical movement
                 self.squash_x = 1.1
                 self.squash_y = 0.9
             move_entity(self, target_x, target_y)
-            # The logical position update (self.set_grid_pos) happens inside the
-            # animation's on_complete_callback, NOT here.
             return True
 
         return False
@@ -273,27 +239,23 @@ class Enemy(Entity):
         target_x, target_y = player_entity.get_grid_pos()
         origin_x, origin_y = self.get_grid_pos()
 
-        if target_x - self.grid_y != 0:
+        # --- FIXED: Check attack direction for squash ---
+        if target_x - self.grid_x != 0:  # Horizontal attack
             self.squash_x = 1.15
             self.squash_y = 0.85
-        else:
+        else:  # Vertical attack
             self.squash_y = 1.15
             self.squash_x = 0.85
 
-        # --- LUNGE PHASE: Move 1/2 tile towards the player ---
+        # --- LUNGE PHASE ---
         def lunge_complete_callback():
-            # Apply damage to the player
             self.attack_player(player_entity, origin_x, origin_y)
 
-            # --- RETREAT PHASE: Move back 1/2 tile ---
-
-            # The destination for the retreat is the enemy's starting position
+            # --- RETREAT PHASE ---
             retreat_x, retreat_y = origin_x, origin_y
 
-            # The final callback ends the move state
             def retreat_complete_callback():
                 self.is_moving = False
-                # Ensure the entity lands back exactly on its original grid spot
                 self.set_grid_pos(origin_x, origin_y)
 
             move_entity(
@@ -322,8 +284,9 @@ class Enemy(Entity):
         damage = 1
         destination_x, destination_y = player_entity.get_grid_pos()
         attack_dir = (origin_x - destination_x, origin_y - destination_y)
-        # Apply damage to the player
-        player_entity.take_damage(damage, attack_dir)
+
+        # --- Don't trigger state transition when player takes damage during enemy turn ---
+        player_entity.take_damage(damage, attack_dir, suppress_state_transition=True)
 
     def take_damage(self, amount: int, direction: tuple[int, int]):
         """
@@ -335,17 +298,32 @@ class Enemy(Entity):
         new_x, new_y = self.get_grid_pos()
         new_x += direction[0]
         new_y += direction[1]
-        if self.current_health <= 0:
-            move_entity(self, new_x, new_y, duration_frames=8, on_complete_callback=self.die)
+
+        # --- Check if knockback destination is valid ---
+        can_knockback = GM.current_level.is_walkable(new_x, new_y)
+
+        # --- Ensure knockback completes before enemy can act again ---
+        def on_knockback_complete():
+            self.is_moving = False
+            if self.current_health <= 0:
+                self.die()
+
+        # --- Only knockback if destination is walkable ---
+        if can_knockback:
+            print(f"[ENEMY DEBUG] Knocking back to ({new_x}, {new_y})")
+            move_entity(self, new_x, new_y, duration_frames=8, on_complete_callback=on_knockback_complete)
         else:
-            move_entity(self, new_x, new_y, duration_frames=8)
+            print(f"[ENEMY DEBUG] Knockback blocked, staying at ({self.grid_x}, {self.grid_y})")
+            # --- Still need to set is_moving and handle death ---
+            if self.current_health <= 0:
+                self.die()
+
         self.start_damage_flash()
 
     def die(self):
         """
         Handles the enemy's death sequence and removal from the level.
         """
-
         if hasattr(GM, 'death_cloud') and GM.death_cloud:
             explosion_pos = self.rect.center
             particle_variation = random.randint(-3, 3)
@@ -360,14 +338,15 @@ class Enemy(Entity):
         relative to the map's current draw position.
         """
         self.update_damage_flash()
-        # Determine base position and slide offset
+
+        # --- Determine base position and slide offset ---
         if self.is_moving:
             base_grid_x = self.start_grid_x
             base_grid_y = self.start_grid_y
             slide_offset_x = self.slide_x * GM.render_tile_size
             slide_offset_y = self.slide_y * GM.render_tile_size
 
-            # Apply squash & stretch while moving
+            # --- Apply squash & stretch while moving ---
             if self.squash_x != 1.0 or self.squash_y != 1.0:
                 new_width = int(self.original_image.get_width() * self.squash_x)
                 new_height = int(self.original_image.get_height() * self.squash_y)
@@ -378,16 +357,16 @@ class Enemy(Entity):
             slide_offset_x = 0
             slide_offset_y = 0
 
-            # Reset to original image when not moving
+            # --- Reset to original image when not moving ---
             if self.squash_x != 1.0 or self.squash_y != 1.0:
                 self.squash_x = 1.0
                 self.squash_y = 1.0
                 self.image = self.original_image.copy()
 
-        # Calculate screen position using current camera offset
+        # --- Calculate screen position using current camera offset ---
         screen_pos_x = (base_grid_x * GM.render_tile_size) + GM.current_level.offset_x
         screen_pos_y = (base_grid_y * GM.render_tile_size) + GM.current_level.offset_y
 
-        # Add the slide offset
+        # --- Add the slide offset ---
         self.rect.x = round(screen_pos_x + slide_offset_x)
         self.rect.y = round(screen_pos_y + slide_offset_y)
