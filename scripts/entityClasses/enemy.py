@@ -39,8 +39,8 @@ class Enemy(Entity):
         self.squash_y: float = 1.0
 
         # --- Combat and Stats ---
-        self.max_hp: int = 1
-        self.hit_points: int = 1
+        self.max_health: int = 1
+        self.current_health: int = 1
         self.is_alive: bool = True
 
         # --- AI and Behavior ---
@@ -324,17 +324,17 @@ class Enemy(Entity):
         """
         Processes incoming damage and updates health.
         """
-        final_damage = amount
-
-        self.hit_points -= final_damage
+        print(f"[ENEMY DEBUG] health: {self.current_health}/{self.max_health} taking {amount} dmg")
+        self.current_health -= amount
 
         new_x, new_y = self.get_grid_pos()
         new_x += direction[0]
         new_y += direction[1]
-        if self.hit_points <= 0:
+        if self.current_health <= 0:
             move_entity(self, new_x, new_y, duration_frames=8, on_complete_callback=self.die)
         else:
             move_entity(self, new_x, new_y, duration_frames=8)
+        self.start_damage_flash()
 
     def die(self):
         """
@@ -354,6 +354,7 @@ class Enemy(Entity):
         Calculates the enemy's pixel position based on the animated slide
         relative to the map's current draw position.
         """
+        self.update_damage_flash()
         # Determine base position and slide offset
         if self.is_moving:
             base_grid_x = self.start_grid_x

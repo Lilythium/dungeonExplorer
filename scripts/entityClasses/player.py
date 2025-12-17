@@ -167,6 +167,7 @@ class Player(Entity):
         new_x += -direction[0]
         new_y += -direction[1]
         move_player(self, new_x, new_y, duration_frames=8)
+        self.start_damage_flash()
 
         if self.current_health <= 0:
             self.game_over()
@@ -178,14 +179,17 @@ class Player(Entity):
         center_x = GM.screen_width // 2
         center_y = GM.screen_height // 2
 
-        # Apply squash & stretch if moving
-        if self.is_moving and (self.squash_x != 1.0 or self.squash_y != 1.0):
-            new_width = int(self.original_image.get_width() * self.squash_x)
-            new_height = int(self.original_image.get_height() * self.squash_y)
-            self.image = pygame.transform.scale(self.original_image, (new_width, new_height))
-        elif not self.is_moving:
-            # Reset to original image when not moving
-            self.image = self.original_image.copy()
+        self.update_damage_flash()
+
+        if not self.is_flashing:
+            # Apply squash & stretch if moving
+            if self.is_moving and (self.squash_x != 1.0 or self.squash_y != 1.0):
+                new_width = int(self.original_image.get_width() * self.squash_x)
+                new_height = int(self.original_image.get_height() * self.squash_y)
+                self.image = pygame.transform.scale(self.original_image, (new_width, new_height))
+            elif not self.is_moving:
+                # Reset to original image when not moving
+                self.image = self.original_image.copy()
 
         # Keep player centered
         self.rect = self.image.get_rect()

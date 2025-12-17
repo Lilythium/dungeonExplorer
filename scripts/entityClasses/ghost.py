@@ -13,3 +13,7 @@ class Ghost(Enemy):
 
         # test route
         self.patrol_route = [(spawn_x, spawn_y), (spawn_x, spawn_y - 1), (spawn_x, spawn_y - 3)]
+
+        # for testing TODO: remove later
+        self.max_health = 100
+        self.current_health = self.max_health
