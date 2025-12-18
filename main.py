@@ -47,7 +47,7 @@ GM.current_level = Level(
 
 # Instantiate Player and store it in GM
 GM.player = Player(TILE_MAP_LOADER)
-GM.player.set_grid_pos(10, 8)  # Initial player position
+GM.player.set_grid_pos(10, 8)
 GM.player.sync_visual_offset()
 
 # Set initial camera position to center on player
@@ -78,9 +78,7 @@ def handle_movement_phase_input(event):
 
         # --- Confirm movement with ENTER or SPACE ---
         elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-            success = GM.player.confirm_movement()
-            # The confirm_movement method now handles state transitions internally
-            # No need for additional state transitions here
+            GM.player.confirm_movement()
 
 
 def handle_action_phase_input(event):
@@ -99,8 +97,6 @@ def handle_action_phase_input(event):
         # --- Confirm action with ENTER or SPACE ---
         elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
             GM.player.perform_action()
-            # The perform_action method will trigger animations
-            # State transition will happen when animations complete
 
 
 # --- Game Loop ---
@@ -116,15 +112,11 @@ while True:
         # Check if animations are done and we need to transition states
         if not GM.has_animations():
             if current_state == "player_movement_phase":
-                # Movement animations complete, move to action phase
-                # This should already be handled by the callback in confirm_movement
                 pass
             elif current_state == "player_action_phase":
-                # Action animations complete, move to enemy turn
                 state_machine.player_action_complete()
 
     if current_state == "start_screen":
-        # Draw start screen and wait for input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -134,11 +126,9 @@ while True:
                     state_machine.start_game()
                     GM.player.start_movement_phase()
 
-        # Draw start screen
         screen.fill((0, 0, 50))
 
     elif current_state == "player_movement_phase":
-        # Only process input if no animations are running
         if not GM.has_animations():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -153,7 +143,6 @@ while True:
         player_group.update()
 
     elif current_state == "player_action_phase":
-        # Only process input if no animations are running
         if not GM.has_animations():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -168,25 +157,20 @@ while True:
         player_group.update()
 
     elif current_state == "enemy_turn":
-        # We now use state_machine.enemy_turn_processed (defined in __init__)
-
         if not state_machine.enemy_turn_processed:
             print("[STATE] Processing enemy actions")
 
-            # Reset which enemies have taken turns
             GM.current_level.reset_enemy_turn_tracking()
 
             enemy_actions_taken = GM.current_level.execute_enemy_turns()
             state_machine.enemy_turn_processed = True
 
-            # If no actions were taken, transition immediately
             if not enemy_actions_taken:
                 print("[STATE] No enemy actions, moving to player turn")
                 state_machine.enemy_turn_complete()
                 GM.player.start_movement_phase()
                 state_machine.enemy_turn_processed = False
 
-        # Check if animations are done
         if state_machine.enemy_turn_processed and not GM.has_animations():
             print("[STATE] Enemy animations complete, moving to player turn")
             state_machine.enemy_turn_complete()
@@ -218,28 +202,21 @@ while True:
     if current_state in ["player_movement_phase", "player_action_phase", "enemy_turn", "pause_screen"]:
         screen.fill(BG_COLOR)
 
-        # Draw Level
         GM.current_level.draw(screen)
 
-        # Draw movement range and cursor (only in movement phase)
         if current_state == "player_movement_phase" and not GM.has_animations():
             GM.player.draw_movement_range(screen)
             GM.player.draw_movement_cursor(screen)
 
-        # Draw action selector (only in action phase)
         if current_state == "player_action_phase" and not GM.has_animations():
             GM.player.draw_action_selector(screen)
 
-        # Draw Player
         player_group.draw(screen)
 
-        # Draw effects
         GM.death_cloud.update_and_draw(screen)
 
-        # Draw HUD
         GM.hud_manager.draw(screen)
 
-        # Draw pause overlay if in pause screen
         if current_state == "pause_screen":
             pause_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             pause_surface.set_alpha(128)
@@ -252,25 +229,18 @@ while True:
     elif current_state == "game_over":
         screen.fill((50, 0, 0))
 
-    # --- Update Display ---
     pygame.display.update()
     clock.tick(60)
 
 """TODO: 
-fix moving multiple squares animation (each tile should be 1 animation) 
+animation is buggy again
+player.can_perform_action counts diagonals
 
-improve move phase grid effect by having it grow out from the player when the phase starts,
-    have it blit all tiles to one surface to draw, 
-    add an outline effect in a slightly darker colour
-    
-POTENTIALLY: highlight interactables in range in green and 
-             attackables in range in red and allow the player to spend their whole turn at once
-             calculate how many moves player uses, move_speed should be a per turn variable not just the range
-
-rework attack targeting to use facing_dir to choose direction of attack 
-use 1x1 if no equipment 
-add equipment have 
-equipment change targetting options (ie. one attacks 3 squares away but not any closer, one attacks like a knight)
-
-Add menu screens
+FEATURES TO ADD:
+- Equipment system with different attack patterns
+- Attack range weapons (1x1 melee, 3-tile lance, knight-pattern, etc.)
+- Menu screens (inventory, stats, map)
+- More enemy types and behaviors
+- Loot system for chests
+- Level progression system
 """
