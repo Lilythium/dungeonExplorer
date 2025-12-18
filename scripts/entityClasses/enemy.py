@@ -3,6 +3,7 @@ import random
 import pygame
 
 from scripts.entity_actions import move_entity
+from scripts.pathfinding import get_next_step_towards
 from .entity import Entity
 from .player import Player
 from ..game_manager import GM
@@ -15,6 +16,9 @@ class Enemy(Entity):
 
         # --- Essential Game References ---
         self.tile_map_loader = tile_map_loader
+
+        # --- Movement Stats ---
+        self.move_speed = 1  # Enemy moves 1 tile per turn
 
         # --- Rendering and Pygame Setup ---
         self.image = self.tile_map_loader.get_tile(0)
@@ -45,7 +49,11 @@ class Enemy(Entity):
         # --- AI and Behavior ---
         self.view_radius: int = 5
         self.ai_state: str = "PATROL"
-        self.patrol_route: list[tuple[int, int]] = []
+
+        # Patrol waypoints - enemy will pathfind to each in order
+        self.patrol_waypoints: list[tuple[int, int]] = []
+        self.current_waypoint_index: int = 0
+
         self.turn_timer: int = 0
         self.facing_dir: tuple[int, int] = (0, 0)
 
@@ -119,21 +127,17 @@ class Enemy(Entity):
         match self.ai_state:
             case "CHASE":
                 action_taken = self._do_chase(player_grid_pos)
-                if action_taken:
-                    action_taken = self.perform_queued_action()
             case "PATROL":
                 action_taken = self._do_patrol()
-                if action_taken:
-                    action_taken = self.perform_queued_action()
             case "ATTACK":
-                action_taken = self.perform_queued_action()
+                action_taken = self._do_attack(player_grid_pos)
 
         return action_taken
 
     def _do_chase(self, player_grid_pos: tuple[int, int]) -> bool:
         """
-        Calculates the best move to close the distance to the player and sets facing_dir.
-        Returns True if a move/attack was successfully queued.
+        Moves towards the player using pathfinding.
+        Returns True if a move/attack was successfully executed.
         """
         player_x, player_y = player_grid_pos
         enemy_x, enemy_y = self.grid_x, self.grid_y
@@ -145,101 +149,78 @@ class Enemy(Entity):
         is_cardinal_adjacent = manhattan_distance == 1
 
         if is_cardinal_adjacent:
-            # --- Player is adjacent - Queue the attack ---
+            # --- Player is adjacent - Execute attack ---
             self.ai_state = "ATTACK"
-            self.facing_dir = (player_x, player_y)
-            return True
+            return self._do_attack(player_grid_pos)
 
-        # --- Player is not adjacent - Queue a move ---
-        target_x, target_y = enemy_x, enemy_y
+        # --- Player is not adjacent - Move towards them ---
+        next_step = get_next_step_towards(GM.current_level, enemy_x, enemy_y, player_x, player_y)
 
-        if abs(dx) >= abs(dy):
-            target_x += (1 if dx > 0 else -1)
-        else:
-            target_y += (1 if dy > 0 else -1)
+        if next_step:
+            target_x, target_y = next_step
 
-        if GM.current_level.is_walkable(target_x, target_y):
-            self.facing_dir = (target_x, target_y)
-            return True
+            # Check if destination is walkable
+            if GM.current_level.is_walkable(target_x, target_y):
+                # Determine squash direction
+                if target_x - self.grid_x != 0:  # Horizontal movement
+                    self.squash_y = 1.1
+                    self.squash_x = 0.9
+                else:  # Vertical movement
+                    self.squash_x = 1.1
+                    self.squash_y = 0.9
+
+                move_entity(self, target_x, target_y)
+                return True
 
         return False
 
     def _do_patrol(self) -> bool:
         """
-        Follows the predefined patrol_route.
+        Follows the predefined patrol_waypoints using pathfinding.
         """
-        if not self.patrol_route:
+        if not self.patrol_waypoints:
             return False
 
-        # --- Check if we reached the current target point ---
-        next_x, next_y = self.patrol_route[0]
+        # --- Get current target waypoint ---
+        target_x, target_y = self.patrol_waypoints[self.current_waypoint_index]
 
-        if self.grid_x == next_x and self.grid_y == next_y:
-            self.patrol_route.append(self.patrol_route.pop(0))
-            next_x, next_y = self.patrol_route[0]
+        # --- Check if we reached the current waypoint ---
+        if self.grid_x == target_x and self.grid_y == target_y:
+            # Move to next waypoint
+            self.current_waypoint_index = (self.current_waypoint_index + 1) % len(self.patrol_waypoints)
+            target_x, target_y = self.patrol_waypoints[self.current_waypoint_index]
 
-        # --- Calculate the single step towards the new target ---
-        dx = next_x - self.grid_x
-        dy = next_y - self.grid_y
+        # --- Pathfind towards the waypoint ---
+        next_step = get_next_step_towards(GM.current_level, self.grid_x, self.grid_y, target_x, target_y)
 
-        step_x = 0
-        step_y = 0
+        if next_step:
+            step_x, step_y = next_step
 
-        if abs(dx) > 0:
-            step_x = 1 if dx > 0 else -1
-        elif abs(dy) > 0:
-            step_y = 1 if dy > 0 else -1
+            if GM.current_level.is_walkable(step_x, step_y):
+                # Determine squash direction
+                if step_x - self.grid_x != 0:  # Horizontal movement
+                    self.squash_y = 1.1
+                    self.squash_x = 0.9
+                else:  # Vertical movement
+                    self.squash_x = 1.1
+                    self.squash_y = 0.9
 
-        target_x = self.grid_x + step_x
-        target_y = self.grid_y + step_y
-
-        if GM.current_level.is_walkable(target_x, target_y):
-            self.facing_dir = (target_x, target_y)
-            return True
+                move_entity(self, step_x, step_y)
+                return True
 
         return False
 
-    def perform_queued_action(self):
-        """
-        Executes the queued action based on self.facing_dir.
-        """
-        if self.is_moving:
-            return False
-
-        target_x, target_y = self.facing_dir
-        player = GM.player
-
-        # --- Attack Check ---
-        if (target_x, target_y) == player.get_grid_pos():
-            self._do_attack_lunge(player)
-            self.ai_state = "CHASE"
-            return True
-
-        # --- Move Check and Execution ---
-        if GM.current_level.is_walkable(target_x, target_y):
-            # --- FIXED: Check move direction for squash ---
-            if target_x - self.grid_x != 0:  # Horizontal movement
-                self.squash_y = 1.1
-                self.squash_x = 0.9
-            else:  # Vertical movement
-                self.squash_x = 1.1
-                self.squash_y = 0.9
-            move_entity(self, target_x, target_y)
-            return True
-
-        return False
-
-    def _do_attack_lunge(self, player_entity: Player):
+    def _do_attack(self, player_grid_pos: tuple[int, int]) -> bool:
         """
         Executes the two-part attack animation: Lunge -> Damage -> Retreat.
         """
         if self.is_moving:
-            return
+            return False
 
-        target_x, target_y = player_entity.get_grid_pos()
+        target_x, target_y = player_grid_pos
         origin_x, origin_y = self.get_grid_pos()
 
-        # --- FIXED: Check attack direction for squash ---
+        # --- Check attack direction for squash ---
         if target_x - self.grid_x != 0:  # Horizontal attack
             self.squash_x = 1.15
             self.squash_y = 0.85
@@ -249,7 +230,7 @@ class Enemy(Entity):
 
         # --- LUNGE PHASE ---
         def lunge_complete_callback():
-            self.attack_player(player_entity, origin_x, origin_y)
+            self.attack_player(GM.player, origin_x, origin_y)
 
             # --- RETREAT PHASE ---
             retreat_x, retreat_y = origin_x, origin_y
@@ -257,6 +238,7 @@ class Enemy(Entity):
             def retreat_complete_callback():
                 self.is_moving = False
                 self.set_grid_pos(origin_x, origin_y)
+                self.ai_state = "CHASE"  # Reset to chase after attack
 
             move_entity(
                 entity=self,

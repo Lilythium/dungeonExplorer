@@ -6,17 +6,7 @@ from scripts.animation import InterpolationAnimation
 from scripts.game_manager import GM
 
 
-class EntityActions:
-    """
-    Contains all the action handlers for entity interactions.
-    Each method creates and returns an animation.
-    """
-
-    def __init__(self):
-        pass
-
-
-def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
+def move_player(player, new_grid_x, new_grid_y, duration_frames=12, on_complete_callback=None):
     """
     Locks the game and smoothly animates the camera to center on the
     player's new grid position. This is the official move action for the Player.
@@ -26,8 +16,8 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
         new_grid_x: The player's new X grid position (already set on the player).
         new_grid_y: The player's new Y grid position (already set on the player).
         duration_frames: Animation duration for the camera pan.
+        on_complete_callback: Optional callback function to call when animation completes.
     """
-
     start_visual_x = player.offset_x_visual
     start_visual_y = player.offset_y_visual
 
@@ -46,6 +36,8 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
     def on_movement_complete():
         player.sync_visual_offset()
         player.is_moving = False
+        if on_complete_callback:
+            on_complete_callback()
 
     # --- Animate visual offset (for sprite sliding) ---
     player_visual_x_anim = InterpolationAnimation(
@@ -73,6 +65,8 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12):
     # --- Add player visual animations ---
     GM.add_animation(player_visual_x_anim)
     GM.add_animation(player_visual_y_anim)
+
+    return player_visual_x_anim
 
 
 def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_complete_callback=None):

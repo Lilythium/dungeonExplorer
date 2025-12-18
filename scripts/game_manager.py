@@ -33,12 +33,11 @@ class GameManager:
     @property
     def is_locked(self):
         """Returns whether the game is locked due to active animations."""
-        return self.animation_manager.is_locked
+        return self.has_animations()
 
-    @is_locked.setter
-    def is_locked(self, value):
-        """Allows external code (like EntityActions) to set the lock state."""
-        self.animation_manager.is_locked = bool(value)
+    def has_animations(self):
+        """Check if any animations are currently running."""
+        return self.animation_manager.is_animating()
 
     def add_animation(self, animation: Animation):
         """Add an animation to the manager."""
@@ -47,28 +46,9 @@ class GameManager:
     def resolve_animations(self):
         """
         Called every frame to update all active animations.
-        Handles state transitions when animations complete.
+        Returns True if animations are still running.
         """
-        still_animating = self.animation_manager.update()
-
-        if not self.state_machine:
-            return still_animating
-
-        current_state = self.state_machine.current_state.id
-
-        # --- Check if animations are complete and we're in an animating state ---
-        if not still_animating:
-            if current_state == "player_animating":
-                print("[STATE] Player animations complete, moving to enemy turn")
-                self.state_machine.player_animations_complete()
-                # --- Start enemy turns immediately ---
-                self.start_enemy_turn()
-
-            elif current_state == "enemy_animating":
-                print("[STATE] Enemy animations complete, moving to player turn")
-                self.state_machine.enemy_animations_complete()
-
-        return still_animating
+        return self.animation_manager.update()
 
     def start_enemy_turn(self):
         """Start enemy turn processing."""
@@ -78,26 +58,18 @@ class GameManager:
         if self.current_level:
             enemy_actions_taken = self.current_level.execute_enemy_turns()
 
-            # --- If enemies took actions, transition to enemy_animating ---
-            if enemy_actions_taken:
-                print("[STATE] Enemy actions taken, moving to enemy animating")
-                self.state_machine.enemy_actions_start()
+            # --- Check if there are any animations running ---
+            if self.has_animations() or enemy_actions_taken:
+                # Wait for animations to complete in the main loop
+                # The main loop will handle the transition
+                pass
             else:
-                # --- Check if there are any animations still running ---
-                # (e.g., enemy knockback from player's attack)
-                if self.animation_manager.is_animating():
-                    print("[STATE] No new enemy actions, but animations still running - moving to enemy animating")
-                    self.state_machine.enemy_actions_start()
-                else:
-                    # --- No actions and no animations, go directly back to player turn ---
-                    print("[STATE] No enemy actions and no animations, moving directly back to player turn")
-                    self.state_machine.no_enemy_actions()
-
-    def player_perform_action(self):
-        """Called when player performs an action to trigger state transition."""
-        if self.state_machine and self.state_machine.current_state.id == "player_turn":
-            print("[STATE] Player action, moving to player animating state")
-            self.state_machine.player_action()
+                # --- No actions and no animations, go directly back to player turn ---
+                print("[STATE] No enemy actions and no animations, moving directly back to player turn")
+                if self.state_machine:
+                    self.state_machine.enemy_turn_complete()
+                    # --- Start new player movement phase ---
+                    self.player.start_movement_phase()
 
 
 # --- Create a globally accessible instance of the Manager ---

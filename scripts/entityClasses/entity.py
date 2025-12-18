@@ -11,6 +11,9 @@ class Entity(pygame.sprite.Sprite):
         self.grid_y = 0
         self.facing_dir = (0, 0)
 
+        # --- Movement Stats ---
+        self.move_speed = 1  # Number of tiles entity can move per turn
+
         # These properties will be animated by EntityActions.move_entity
         self.offset_x_visual = float(self.grid_x)
         self.offset_y_visual = float(self.grid_y)

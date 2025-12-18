@@ -3,16 +3,21 @@ import pygame
 from scripts.entityClasses.entity import Entity
 from scripts.entity_actions import move_player
 from scripts.game_manager import GM
+from scripts.pathfinding import get_reachable_tiles
 from scripts.tileset import Tile
 
 
 class Player(Entity):
     COLOUR_GREEN = (0, 200, 0, 255)
     COLOUR_RED = (200, 0, 0, 255)
+    COLOUR_BLUE = (100, 150, 255, 160)  # Semi-transparent blue for movement range
 
     def __init__(self, tile_map_loader):
         super().__init__(tile_map_loader)
         self.tile_map_loader = tile_map_loader
+
+        # --- Movement Stats ---
+        self.move_speed = 3  # Can move 3 tiles per turn
 
         # --- Sprite Setup ---
         self.image = self.tile_map_loader.get_tile(Tile.PLAYER_CHARACTER.value)
@@ -23,6 +28,12 @@ class Player(Entity):
         self.selector_rect = self.selector.get_rect()
 
         self.facing_dir = (0, 0)
+
+        # --- Movement Phase State ---
+        self.cursor_x = 0  # Movement cursor position
+        self.cursor_y = 0
+        self.reachable_tiles = set()  # Tiles within movement range
+        self.movement_confirmed = False
 
         # --- Positioning ---
         self.rect.centerx = GM.screen_width // 2
@@ -40,30 +51,188 @@ class Player(Entity):
         self.max_health = 3
         self.current_health = self.max_health
 
+        # --- Create movement highlight surface ---
+        self.highlight_surf = pygame.Surface((GM.render_tile_size, GM.render_tile_size), pygame.SRCALPHA)
+        self.highlight_surf.fill(self.COLOUR_BLUE)
+
     def set_grid_pos(self, x, y):
         """Sets the player's starting position in the map grid."""
         self.grid_x = x
         self.grid_y = y
         self.offset_x_visual = float(x)
         self.offset_y_visual = float(y)
+        self.cursor_x = x
+        self.cursor_y = y
 
-    def get_selector_position(self):
-        """
-        Calculates the grid and screen position of the target tile.
-        """
+    def start_movement_phase(self):
+        """Initialize movement phase - calculate reachable tiles."""
+        self.cursor_x = self.grid_x
+        self.cursor_y = self.grid_y
+        self.reachable_tiles = get_reachable_tiles(
+            GM.current_level,
+            self.grid_x,
+            self.grid_y,
+            self.move_speed,
+            ignore_enemies=True  # Can move through enemy tiles, just can't stop on them
+        )
+        self.movement_confirmed = False
+        print(f"[PLAYER] Movement phase started. Reachable tiles: {len(self.reachable_tiles)}")
+
+    def move_cursor(self, dx, dy):
+        """Move the movement cursor, constrained to reachable tiles."""
+        new_x = self.cursor_x + dx
+        new_y = self.cursor_y + dy
+
+        # Check if new position is reachable
+        if (new_x, new_y) in self.reachable_tiles:
+            self.cursor_x = new_x
+            self.cursor_y = new_y
+            return True
+        return False
+
+    def confirm_movement(self):
+        """Confirm movement to cursor position."""
+        if (self.cursor_x, self.cursor_y) not in self.reachable_tiles:
+            return False
+
+        # Don't move if already at cursor position
+        if self.cursor_x == self.grid_x and self.cursor_y == self.grid_y:
+            self.movement_confirmed = True
+            # Immediately transition to action phase
+            GM.state_machine.player_movement_complete()
+            self.start_action_phase()
+            return True
+
+        # Check if destination has an enemy
+        if GM.current_level.get_enemy_at(self.cursor_x, self.cursor_y):
+            print("[PLAYER] Cannot move to tile with enemy")
+            return False
+
+        # Execute movement
+        print(f"[PLAYER] Moving from ({self.grid_x}, {self.grid_y}) to ({self.cursor_x}, {self.cursor_y})")
+
+        # Determine squash direction
+        if self.cursor_x != self.grid_x:
+            self.squash_y = 1.1
+            self.squash_x = 0.9
+        else:
+            self.squash_x = 1.1
+            self.squash_y = 0.9
+
+        # Start movement animation with callback
+        def on_movement_complete():
+            self.sync_visual_offset()
+            self.is_moving = False
+            # Transition to action phase after animation
+            if self.can_perform_action():
+                self.start_action_phase()
+                GM.state_machine.player_movement_complete()
+            else:
+                GM.state_machine.player_has_no_action()
+
+        move_player(self, self.cursor_x, self.cursor_y, duration_frames=10,
+                    on_complete_callback=on_movement_complete)
+        self.is_moving = True
+        self.movement_confirmed = True
+
+        return True
+
+    def start_action_phase(self):
+        """Initialize action phase."""
+        self.facing_dir = (0, 0)
+        print("[PLAYER] Action phase started")
+
+    def get_action_target(self):
+        """Get the position being targeted for action."""
         if self.facing_dir == (0, 0):
             return None
 
-        current_x, current_y = self.get_grid_pos()
-        dir_x, dir_y = self.facing_dir
+        dx, dy = self.facing_dir
+        target_x = self.grid_x + dx
+        target_y = self.grid_y + dy
 
-        target_grid_x = current_x + dir_x
-        target_grid_y = current_y + dir_y
+        return target_x, target_y
 
-        selector_screen_x = self.rect.x + (dir_x * GM.render_tile_size)
-        selector_screen_y = self.rect.y + (dir_y * GM.render_tile_size)
+    def set_facing_direction(self, dx, dy):
+        """Set the direction player is facing for action phase."""
+        self.facing_dir = (dx, dy)
 
-        return target_grid_x, target_grid_y, selector_screen_x, selector_screen_y
+    def can_perform_action(self):
+        """Check for interact or attack targets in range"""
+
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                if dx == 0 and dy == 0:
+                    pass
+                target_x = self.grid_x + dx
+                target_y = self.grid_y + dy
+                # checks for interact target
+                if (target_x, target_y) in Tile.get_selectable_tiles():
+                    return True
+                # checks for attack target
+                if GM.current_level.get_enemy_at(target_x, target_y):
+                    return True
+        return False
+
+    def perform_action(self):
+        """Execute action in the direction player is facing."""
+        if self.facing_dir == (0, 0):
+            # No action - just skip to enemy turn
+            GM.state_machine.player_skip_action()
+            return True
+
+        dx, dy = self.facing_dir
+        target_x = self.grid_x + dx
+        target_y = self.grid_y + dy
+
+        target_tile_index = GM.current_level.get_tile_at(target_x, target_y)
+
+        # --- Check for ATTACK ---
+        attack_target = GM.current_level.get_enemy_at(target_x, target_y)
+        if attack_target:
+            self.attack_enemy(attack_target)
+            self.facing_dir = (0, 0)
+            # State transition will happen after animations complete
+            return True
+
+        # --- Check for INTERACTION ---
+        if target_tile_index in Tile.get_selectable_tiles():
+            animation_info = GM.current_level.process_action(target_x, target_y, target_tile_index)
+            if animation_info:
+                print(f"[PLAYER] Initiated action on tile ID {target_tile_index}")
+                self.facing_dir = (0, 0)
+                # State transition will happen after animations complete
+                return True
+
+        # No valid action
+        print("[PLAYER] No valid action in that direction")
+        return False
+
+    def draw_movement_range(self, surface):
+        """Draw highlighted tiles showing movement range."""
+        if not self.reachable_tiles:
+            return
+
+        for tile_x, tile_y in self.reachable_tiles:
+            # Skip the current player position
+            if tile_x == self.grid_x and tile_y == self.grid_y:
+                continue
+
+            screen_x = (tile_x * GM.render_tile_size) + GM.current_level.offset_x
+            screen_y = (tile_y * GM.render_tile_size) + GM.current_level.offset_y
+            surface.blit(self.highlight_surf, (screen_x, screen_y))
+        surface.blit(self.highlight_surf, (self.rect.topleft, self.rect.topright))
+
+    def draw_movement_cursor(self, surface):
+        """Draw the cursor showing where player will move."""
+        if self.cursor_x != self.grid_x or self.cursor_y != self.grid_y:
+            screen_x = (self.cursor_x * GM.render_tile_size) + GM.current_level.offset_x
+            screen_y = (self.cursor_y * GM.render_tile_size) + GM.current_level.offset_y
+
+            # Draw cursor in white
+            cursor_colored = self.selector.copy()
+            cursor_colored.fill((255, 255, 255, 255), special_flags=pygame.BLEND_MULT)
+            surface.blit(cursor_colored, (screen_x, screen_y))
 
     def get_colored_selector(self, colour):
         """Creates a temporary, colored version of the selector sprite."""
@@ -71,88 +240,26 @@ class Player(Entity):
         colored_selector.fill(colour, special_flags=pygame.BLEND_MULT)
         return colored_selector
 
-    def draw_selector(self, surface):
-        """
-        Draws the selector sprite.
-        """
-        selector_info = self.get_selector_position()
+    def draw_action_selector(self, surface):
+        """Draw the selector for action phase."""
+        if self.facing_dir == (0, 0):
+            return
 
-        if selector_info:
-            target_grid_x, target_grid_y, screen_x, screen_y = selector_info
-
-            target_tile_index = GM.current_level.get_tile_at(target_grid_x, target_grid_y)
-            if GM.current_level.get_enemy_at(target_grid_x, target_grid_y):
-                surface.blit(self.get_colored_selector(self.COLOUR_RED), (screen_x, screen_y))
-            elif target_tile_index in Tile.get_selectable_tiles():
-                surface.blit(self.get_colored_selector(self.COLOUR_GREEN), (screen_x, screen_y))
-            elif target_tile_index in Tile.get_walkable_tiles():
-                surface.blit(self.selector, (screen_x, screen_y))
-
-    def perform_queued_action(self):
-        """
-        Executes the queued action based on self.facing_dir.
-
-        Returns:
-            False: Action blocked (no turn consumed).
-            True: Simple move action (triggers animation lock, no tile swap needed).
-            tuple: (pos_x, pos_y, final_tile_id) if an interaction/attack needs cleanup.
-        """
         dx, dy = self.facing_dir
+        target_x = self.grid_x + dx
+        target_y = self.grid_y + dy
 
-        if (dx, dy) == (0, 0):
-            return False
+        screen_x = (target_x * GM.render_tile_size) + GM.current_level.offset_x
+        screen_y = (target_y * GM.render_tile_size) + GM.current_level.offset_y
 
-        # --- Calculate Target Position ---
-        new_x = self.grid_x + dx
-        new_y = self.grid_y + dy
+        target_tile_index = GM.current_level.get_tile_at(target_x, target_y)
 
-        target_tile_index = GM.current_level.get_tile_at(new_x, new_y)
-
-        # --- Check for ATTACK ---
-        attack_target = GM.current_level.get_enemy_at(new_x, new_y)
-        if attack_target:
-            self.attack_enemy(attack_target)
-            # --- FIXED: Reset facing_dir AFTER attack, not before ---
-            self.facing_dir = (0, 0)
-            # --- Signal state transition ---
-            GM.player_perform_action()
-            return True
+        if GM.current_level.get_enemy_at(target_x, target_y):
+            surface.blit(self.get_colored_selector(self.COLOUR_RED), (screen_x, screen_y))
+        elif target_tile_index in Tile.get_selectable_tiles():
+            surface.blit(self.get_colored_selector(self.COLOUR_GREEN), (screen_x, screen_y))
         else:
-            # --- Check for INTERACTION (Door/Chest) ---
-            if target_tile_index in Tile.get_selectable_tiles():
-
-                animation_info = GM.current_level.process_action(new_x, new_y, target_tile_index)
-
-                if animation_info:
-                    print(f"Player initiated action on tile ID {target_tile_index}.")
-                    self.facing_dir = (0, 0)
-                    GM.player_perform_action()
-                    return animation_info
-                else:
-                    return False
-
-            # --- Check for MOVEMENT ---
-            if target_tile_index in Tile.get_walkable_tiles():
-
-                print(f"Player moved to ({new_x}, {new_y}).")
-
-                move_player(self, new_x, new_y, duration_frames=10)
-                self.is_moving = True
-                if self.facing_dir[0] != 0:
-                    self.squash_y = 1.1
-                    self.squash_x = 0.9
-                else:
-                    self.squash_x = 1.1
-                    self.squash_y = 0.9
-                self.facing_dir = (0, 0)
-
-                GM.player_perform_action()
-                return True
-
-            # --- Handle Blocked Actions ---
-            else:
-                print(f"Action blocked: Tile ID {target_tile_index} cannot be targeted.")
-                return False
+            surface.blit(self.selector, (screen_x, screen_y))
 
     def attack_enemy(self, enemy):
         enemy.take_damage(self.attack_dmg, self.facing_dir)
@@ -222,8 +329,12 @@ class Player(Entity):
             GM.add_animation(player_visual_x_anim)
             GM.add_animation(player_visual_y_anim)
         else:
-            # Normal player turn damage - use move_player which triggers state transition
-            move_player(self, new_x, new_y, duration_frames=8)
+            # Normal player turn damage - use move_player
+            def on_damage_complete():
+                self.sync_visual_offset()
+                self.is_moving = False
+
+            move_player(self, new_x, new_y, duration_frames=8, on_complete_callback=on_damage_complete)
 
         self.start_damage_flash()
         GM.hud_manager.update_health(self.current_health)
@@ -235,6 +346,7 @@ class Player(Entity):
         """
         Player stays centered - camera movement handles positioning.
         """
+        # Base center position
         center_x = GM.screen_width // 2
         center_y = GM.screen_height // 2
 
@@ -249,10 +361,15 @@ class Player(Entity):
             elif not self.is_moving:
                 self.image = self.original_image.copy()
 
-        # --- Keep player centered ---
+        # Calculate the pixel offset for smooth movement
+        # When offset_x_visual != grid_x, we're between grid cells
+        pixel_offset_x = (self.offset_x_visual - float(self.grid_x)) * GM.render_tile_size
+        pixel_offset_y = (self.offset_y_visual - float(self.grid_y)) * GM.render_tile_size
+
+        # Position player at center with smooth offset
         self.rect = self.image.get_rect()
-        self.rect.centerx = center_x
-        self.rect.centery = center_y
+        self.rect.centerx = center_x + pixel_offset_x
+        self.rect.centery = center_y + pixel_offset_y
 
     @staticmethod
     def game_over():

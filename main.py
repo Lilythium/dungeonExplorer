@@ -63,46 +63,65 @@ GM.death_cloud = DeathCloudEmitter()
 
 
 # --- Helper function to handle player input ---
-def handle_player_input(event):
-    """Handle player input based on game state."""
-    current_state = state_machine.current_state.id
+def handle_movement_phase_input(event):
+    """Handle player input during movement phase."""
+    if event.type == pygame.KEYDOWN:
+        # --- Move cursor with arrow keys ---
+        if event.key == pygame.K_UP or event.key == pygame.K_w:
+            GM.player.move_cursor(0, -1)
+        elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
+            GM.player.move_cursor(0, 1)
+        elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+            GM.player.move_cursor(-1, 0)
+        elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+            GM.player.move_cursor(1, 0)
 
-    if current_state == "player_turn":
-        if event.type == pygame.KEYDOWN:
-            # --- Handle Targeting/Facing Direction ---
-            if event.key == pygame.K_UP or event.key == pygame.K_w:
-                dx, dy = 0, -1
-                GM.player.facing_dir = (dx, dy)
-            elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                dx, dy = 0, 1
-                GM.player.facing_dir = (dx, dy)
-            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                dx, dy = -1, 0
-                GM.player.facing_dir = (dx, dy)
-            elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                dx, dy = 1, 0
-                GM.player.facing_dir = (dx, dy)
+        # --- Confirm movement with ENTER or SPACE ---
+        elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+            success = GM.player.confirm_movement()
+            # The confirm_movement method now handles state transitions internally
+            # No need for additional state transitions here
 
-            # --- Handle Interactions ---
-            if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                action_success = GM.player.perform_queued_action()
-                if action_success:
-                    # Trigger state transition
-                    GM.player_perform_action()
 
-    # Handle pause for all states
-    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-        # FIXED: Use the correct state names
-        if current_state in ["player_turn", "enemy_turn", "player_animating", "enemy_animating"]:
-            state_machine.pause_game()
-        elif current_state == "pause_screen":
-            state_machine.unpause_game()
+def handle_action_phase_input(event):
+    """Handle player input during action phase."""
+    if event.type == pygame.KEYDOWN:
+        # --- Set facing direction with arrow keys ---
+        if event.key == pygame.K_UP or event.key == pygame.K_w:
+            GM.player.set_facing_direction(0, -1)
+        elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
+            GM.player.set_facing_direction(0, 1)
+        elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+            GM.player.set_facing_direction(-1, 0)
+        elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+            GM.player.set_facing_direction(1, 0)
+
+        # --- Confirm action with ENTER or SPACE ---
+        elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+            GM.player.perform_action()
+            # The perform_action method will trigger animations
+            # State transition will happen when animations complete
 
 
 # --- Game Loop ---
 while True:
     # Handle events based on current state
     current_state = state_machine.current_state.id
+
+    # Handle animations if they're running
+    if GM.has_animations():
+        GM.resolve_animations()
+        GM.hud_manager.update()
+
+        # Check if animations are done and we need to transition states
+        if not GM.has_animations():
+            if current_state == "player_movement_phase":
+                # Movement animations complete, move to action phase
+                # This should already be handled by the callback in confirm_movement
+                pass
+            elif current_state == "player_action_phase":
+                # Action animations complete, move to enemy turn
+                state_machine.player_action_complete()
 
     if current_state == "start_screen":
         # Draw start screen and wait for input
@@ -113,73 +132,68 @@ while True:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     state_machine.start_game()
+                    GM.player.start_movement_phase()
 
         # Draw start screen
         screen.fill((0, 0, 50))
-        # Add your start screen drawing code here
 
-    elif current_state == "player_turn":
-        # First check for buffered direction from key presses during non-player turns
-        if state_machine.has_buffered_direction():
-            buffered_direction = state_machine.get_buffered_direction()
-            GM.player.facing_dir = buffered_direction
-
-        # Then check for currently held direction keys
-        held_direction = state_machine.update_held_direction()
-        if held_direction:
-            GM.player.facing_dir = held_direction
-
-        # Then process new inputs
-        if not GM.is_locked:
+    elif current_state == "player_movement_phase":
+        # Only process input if no animations are running
+        if not GM.has_animations():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                handle_player_input(event)
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    state_machine.pause_game()
+                else:
+                    handle_movement_phase_input(event)
 
         GM.hud_manager.update()
         player_group.update()
 
-    elif current_state == "player_animating":  # <-- FIXED: This should be at the same level as other elif statements
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                state_machine.pause_game()
-            elif event.type == pygame.KEYDOWN:
-                # Only buffer direction keys, not action keys
-                state_machine.buffer_direction_key(event)
+    elif current_state == "player_action_phase":
+        # Only process input if no animations are running
+        if not GM.has_animations():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    state_machine.pause_game()
+                else:
+                    handle_action_phase_input(event)
 
         GM.hud_manager.update()
-        GM.resolve_animations()
+        player_group.update()
 
     elif current_state == "enemy_turn":
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                state_machine.pause_game()
-            elif event.type == pygame.KEYDOWN:
-                # Only buffer direction keys, not action keys
-                state_machine.buffer_direction_key(event)
+        # We now use state_machine.enemy_turn_processed (defined in __init__)
+
+        if not state_machine.enemy_turn_processed:
+            print("[STATE] Processing enemy actions")
+
+            # Reset which enemies have taken turns
+            GM.current_level.reset_enemy_turn_tracking()
+
+            enemy_actions_taken = GM.current_level.execute_enemy_turns()
+            state_machine.enemy_turn_processed = True
+
+            # If no actions were taken, transition immediately
+            if not enemy_actions_taken:
+                print("[STATE] No enemy actions, moving to player turn")
+                state_machine.enemy_turn_complete()
+                GM.player.start_movement_phase()
+                state_machine.enemy_turn_processed = False
+
+        # Check if animations are done
+        if state_machine.enemy_turn_processed and not GM.has_animations():
+            print("[STATE] Enemy animations complete, moving to player turn")
+            state_machine.enemy_turn_complete()
+            GM.player.start_movement_phase()
+            state_machine.enemy_turn_processed = False
 
         GM.hud_manager.update()
-
-    elif current_state == "enemy_animating":
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                state_machine.pause_game()
-            elif event.type == pygame.KEYDOWN:
-                # Only buffer direction keys, not action keys
-                state_machine.buffer_direction_key(event)
-
-        GM.hud_manager.update()
-        GM.resolve_animations()
 
     elif current_state == "pause_screen":
         for event in pygame.event.get():
@@ -193,29 +207,31 @@ while True:
         GM.hud_manager.update()
 
     elif current_state == "game_over":
-        # Game over screen - don't update HUD
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
 
-        # Draw game over screen
         screen.fill((50, 0, 0))
-        # Add your game over drawing code here
 
-    # --- Drawing (for states that need game rendering) ---
-    if current_state in ["player_turn", "player_animating", "enemy_turn", "enemy_animating", "pause_screen"]:
+    # --- Drawing ---
+    if current_state in ["player_movement_phase", "player_action_phase", "enemy_turn", "pause_screen"]:
         screen.fill(BG_COLOR)
 
         # Draw Level
         GM.current_level.draw(screen)
 
+        # Draw movement range and cursor (only in movement phase)
+        if current_state == "player_movement_phase" and not GM.has_animations():
+            GM.player.draw_movement_range(screen)
+            GM.player.draw_movement_cursor(screen)
+
+        # Draw action selector (only in action phase)
+        if current_state == "player_action_phase" and not GM.has_animations():
+            GM.player.draw_action_selector(screen)
+
         # Draw Player
         player_group.draw(screen)
-
-        # Draw Selector (only in player_turn state)
-        if current_state == "player_turn":
-            GM.player.draw_selector(screen)
 
         # Draw effects
         GM.death_cloud.update_and_draw(screen)
@@ -231,25 +247,30 @@ while True:
             screen.blit(pause_surface, (0, 0))
 
     elif current_state == "start_screen":
-        # Draw start screen without HUD
         screen.fill((0, 0, 50))
-        # Add your start screen drawing code here
 
     elif current_state == "game_over":
-        # Draw game over screen without HUD
         screen.fill((50, 0, 0))
-        # Add your game over drawing code here
 
     # --- Update Display ---
     pygame.display.update()
     clock.tick(60)
 
-"""
-TODO: 
-- add buffer input (directionally only) in the pause state
-- Add menus:
-    - Start screen
-    - Pause screen
-    - Game over screen
+"""TODO: 
+fix moving multiple squares animation (each tile should be 1 animation) 
 
+improve move phase grid effect by having it grow out from the player when the phase starts,
+    have it blit all tiles to one surface to draw, 
+    add an outline effect in a slightly darker colour
+    
+POTENTIALLY: highlight interactables in range in green and 
+             attackables in range in red and allow the player to spend their whole turn at once
+             calculate how many moves player uses, move_speed should be a per turn variable not just the range
+
+rework attack targeting to use facing_dir to choose direction of attack 
+use 1x1 if no equipment 
+add equipment have 
+equipment change targetting options (ie. one attacks 3 squares away but not any closer, one attacks like a knight)
+
+Add menu screens
 """

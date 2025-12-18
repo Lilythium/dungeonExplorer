@@ -23,6 +23,7 @@ class Level:
         self.terrain_data = import_csv_layout(level_data['terrain'])
         self.enemy_data = import_csv_layout(level_data['enemy'])
         self.enemies = pygame.sprite.Group()
+        self._enemies_taken_turn_this_phase = set()
 
         # Track animated tiles - MUST be initialized before setup_level_surface()
         self.animated_tiles: dict[tuple[int, int], TileSequenceAnimation] = {}
@@ -253,9 +254,14 @@ class Level:
 
         # Iterate over a copy of the group to allow removal (death) during iteration
         for enemy in list(self.enemies):
-            # Check if the enemy is ready and alive
-            if enemy.is_alive and not enemy.is_moving:
+            # Check if enemy is ready, alive, and hasn't taken a turn this phase
+            enemy_id = id(enemy)  # Unique identifier for each enemy
+
+            if (enemy.is_alive and not enemy.is_moving and
+                    enemy_id not in self._enemies_taken_turn_this_phase):
+
                 print(f"[ENEMY DEBUG] Enemy at {enemy.get_grid_pos()} taking turn")
+                self._enemies_taken_turn_this_phase.add(enemy_id)
 
                 # take_turn() will handle both decision-making AND execution
                 # It returns True if an action was taken
@@ -269,7 +275,13 @@ class Level:
             else:
                 if not enemy.is_alive:
                     print(f"[ENEMY DEBUG] Enemy is dead, skipping")
-                if enemy.is_moving:
+                elif enemy.is_moving:
                     print(f"[ENEMY DEBUG] Enemy is still moving, skipping")
+                elif enemy_id in self._enemies_taken_turn_this_phase:
+                    print(f"[ENEMY DEBUG] Enemy already took turn this phase, skipping")
 
         return any_actions_taken
+
+    def reset_enemy_turn_tracking(self):
+        """Reset which enemies have taken their turn for the current phase."""
+        self._enemies_taken_turn_this_phase.clear()
