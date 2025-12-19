@@ -72,92 +72,6 @@ def move_player(player, new_grid_x, new_grid_y, duration_frames=12, on_complete_
     return player_visual_x_anim
 
 
-def move_player_path(player, path, duration_per_tile=8, delay_between_steps=6, on_complete_callback=None):
-    """
-    Moves the player along a path, animating each step sequentially.
-
-    Args:
-        player: The Player object instance.
-        path: List of (x, y) tuples representing the path to follow.
-        duration_per_tile: Animation duration for each tile movement.
-        delay_between_steps: Frames to wait between steps (for unsquish).
-        on_complete_callback: Optional callback function to call when all movement completes.
-    """
-    if not path or len(path) <= 1:
-        if on_complete_callback:
-            on_complete_callback()
-        return
-
-    # --- Start from index 1 (skip current position if it's in the path) ---
-    current_index = 0
-    if path[0] == (player.grid_x, player.grid_y):
-        current_index = 1
-
-    def move_next_step():
-        nonlocal current_index
-
-        if current_index >= len(path):
-            # --- All steps complete ---
-            if on_complete_callback:
-                on_complete_callback()
-            return
-
-        next_x, next_y = path[current_index]
-        current_index += 1
-
-        # --- Determine squash direction for this step ---
-        if next_x != player.grid_x:
-            player.squash_y = 1.1
-            player.squash_x = 0.9
-        else:
-            player.squash_x = 1.1
-            player.squash_y = 0.9
-
-        # --- Callback after movement complete, with delay before next step ---
-        def on_step_complete():
-            # --- Reset squash ---
-            player.squash_x = 1.0
-            player.squash_y = 1.0
-
-            # --- ALWAYS add delay (minimum 1 frame) to ensure render at end position ---
-            actual_delay = max(1, delay_between_steps)
-
-            from scripts.animation import Animation
-
-            class DelayAnimation(Animation):
-                def __init__(self, duration_frames, callback):
-                    super().__init__(duration_frames)
-                    self.callback = callback
-                    self.has_called = False
-
-                def update(self):
-                    """Override to ensure callback happens AFTER the last frame"""
-                    result = super().update()
-
-                    # Only call callback after animation is marked complete
-                    if self.is_complete and not self.has_called:
-                        self.has_called = True
-                        if self.callback:
-                            self.callback()
-
-                    return result
-
-            delay_anim = DelayAnimation(actual_delay, move_next_step)
-            GM.add_animation(delay_anim)
-
-        # --- Move to next tile ---
-        move_player(
-            player=player,
-            new_grid_x=next_x,
-            new_grid_y=next_y,
-            duration_frames=duration_per_tile,
-            on_complete_callback=on_step_complete
-        )
-
-    # --- Start the chain ---
-    move_next_step()
-
-
 def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_complete_callback=None):
     """
     Smoothly animates an entity from current grid position to target grid position
@@ -208,7 +122,7 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_com
         start_value=0.0,
         end_value=float(slide_dx),
         duration_frames=duration_frames,
-        easing_function=InterpolationAnimation.ease_out_quad,
+        easing_function=InterpolationAnimation.ease_in_out_quad,
         on_complete_callback=finalize_move
     )
 
@@ -218,7 +132,7 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_com
         start_value=0.0,
         end_value=float(slide_dy),
         duration_frames=duration_frames,
-        easing_function=InterpolationAnimation.ease_out_quad
+        easing_function=InterpolationAnimation.ease_in_out_quad
     )
 
     # --- Execute ---
@@ -226,3 +140,71 @@ def move_entity(entity, target_grid_x, target_grid_y, duration_frames=12, on_com
     GM.add_animation(offset_y_animation)
 
     return offset_x_animation
+
+
+def move_player_path(player, path, duration_per_tile=8, delay_between_steps=6, on_complete_callback=None):
+    """
+    Moves the player along a path, animating each step sequentially.
+
+    Args:
+        player: The Player object instance.
+        path: List of (x, y) tuples representing the path to follow.
+        duration_per_tile: Animation duration for each tile movement.
+        delay_between_steps: Frames to wait between steps (for unsquish).
+        on_complete_callback: Optional callback function to call when all movement completes.
+    """
+    if not path or len(path) <= 1:
+        if on_complete_callback:
+            on_complete_callback()
+        return
+
+    # --- Start from index 1 (skip current position if it's in the path) ---
+    current_index = 0
+    if path[0] == (player.grid_x, player.grid_y):
+        current_index = 1
+
+    def move_next_step():
+        nonlocal current_index
+
+        if current_index >= len(path):
+            # --- All steps complete ---
+            if on_complete_callback:
+                on_complete_callback()
+            return
+
+        next_x, next_y = path[current_index]
+        current_index += 1
+
+        # --- Determine squash direction for this step ---
+        if next_x != player.grid_x:
+            player.squash_y = 1.1
+            player.squash_x = 0.9
+        else:
+            player.squash_x = 1.1
+            player.squash_y = 0.9
+
+        # --- Callback after movement complete, with delay before next step ---
+        def on_step_complete():
+            # --- Reset squash ---
+            player.squash_x = 1.0
+            player.squash_y = 1.0
+
+            # --- Ensure at least 2 frames of delay to render at exact position ---
+            actual_delay = max(2, delay_between_steps)  # Minimum 2 frames
+
+            # --- Use the new DelayAnimation class ---
+            from scripts.animation import DelayAnimation
+            delay_anim = DelayAnimation(actual_delay, move_next_step)
+            GM.add_animation(delay_anim)
+
+        # --- Move to next tile ---
+        move_player(
+            player=player,
+            new_grid_x=next_x,
+            new_grid_y=next_y,
+            duration_frames=duration_per_tile,
+            on_complete_callback=on_step_complete
+        )
+
+    # --- Start the chain ---
+    move_next_step()

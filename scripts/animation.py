@@ -292,3 +292,20 @@ class AnimationManager:
     def is_animating(self) -> bool:
         """Returns whether any animations are currently active."""
         return len(self.active_animations) > 0
+
+
+class DelayAnimation(Animation):
+    """Simple animation that does nothing but wait for a specified duration."""
+
+    def __init__(self, duration_frames, on_complete_callback=None):
+        super().__init__(duration_frames)
+        self.on_complete_callback = on_complete_callback
+
+    def update(self):
+        """Just track time without modifying any properties."""
+        self.current_frame += 1
+        if self.current_frame >= self.duration_frames:
+            self.is_complete = True
+            if self.on_complete_callback:
+                self.on_complete_callback()
+        return not self.is_complete
