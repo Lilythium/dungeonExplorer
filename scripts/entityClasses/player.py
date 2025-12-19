@@ -1,7 +1,7 @@
 import pygame
 
 from scripts.entityClasses.entity import Entity
-from scripts.entity_actions import move_player_path
+from scripts.entity_actions import move_player_path, move_player
 from scripts.game_manager import GM
 from scripts.pathfinding import get_reachable_tiles, find_path_bfs
 from scripts.tileset import Tile
@@ -141,7 +141,7 @@ class Player(Entity):
                 GM.state_machine.player_has_no_action()
 
         # --- Start multi-tile movement ---
-        move_player_path(self, path, frames_per_tile=10, on_complete_callback=on_path_complete)
+        move_player_path(self, path, on_complete_callback=on_path_complete)
         self.is_moving = True
         self.movement_confirmed = True
 
@@ -294,22 +294,78 @@ class Player(Entity):
         enemy.take_damage(self.attack_dmg, self.facing_dir)
 
     def take_damage(self, amount: int, direction: tuple[int, int], suppress_state_transition: bool = False):
-        """Player takes damage and gets knocked back."""
+        """
+        Player takes damage and gets knocked back.
+
+        Args:
+            amount: Damage to take
+            direction: Direction of knockback
+            suppress_state_transition: If True, don't trigger state transition (used during enemy turn)
+        """
         self.current_health -= amount
         new_x, new_y = self.get_grid_pos()
         new_x += -direction[0]
         new_y += -direction[1]
 
-        # Create path for knockback animation
-        path = [(self.grid_x, self.grid_y), (new_x, new_y)]
+        # --- Move player without triggering state transition ---
+        if suppress_state_transition:
+            # Manually create the animation without calling move_player
+            from scripts.animation import InterpolationAnimation
 
-        # Define completion callback
-        def on_knockback_complete():
-            self.sync_visual_offset()
-            self.is_moving = False
+            start_visual_x = self.offset_x_visual
+            start_visual_y = self.offset_y_visual
 
-        # Animate the knockback
-        move_player_path(self, path, frames_per_tile=8, on_complete_callback=on_knockback_complete)
+            # --- DON'T update grid position yet ---
+            self.is_moving = True
+
+            duration_frames = 8
+
+            # Calculate camera target
+            player_pixel_x = new_x * GM.render_tile_size
+            player_pixel_y = new_y * GM.render_tile_size
+            target_offset_x = GM.screen_width // 2 - player_pixel_x - (GM.render_tile_size // 2)
+            target_offset_y = GM.screen_height // 2 - player_pixel_y - (GM.render_tile_size // 2)
+
+            def on_movement_complete():
+                # --- Update grid position NOW ---
+                self.grid_x = new_x
+                self.grid_y = new_y
+                self.sync_visual_offset()
+                self.is_moving = False
+
+            # --- Animate visual offset ---
+            player_visual_x_anim = InterpolationAnimation(
+                target_object=self,
+                property_name='offset_x_visual',
+                start_value=start_visual_x,
+                end_value=float(new_x),
+                duration_frames=duration_frames,
+                easing_function=InterpolationAnimation.ease_out_quad,
+                on_complete_callback=on_movement_complete
+            )
+
+            player_visual_y_anim = InterpolationAnimation(
+                target_object=self,
+                property_name='offset_y_visual',
+                start_value=start_visual_y,
+                end_value=float(new_y),
+                duration_frames=duration_frames,
+                easing_function=InterpolationAnimation.ease_out_quad
+            )
+
+            # --- Animate camera ---
+            GM.current_level.animate_camera_to(target_offset_x, target_offset_y, duration_frames=duration_frames)
+
+            # Add animations
+            GM.add_animation(player_visual_x_anim)
+            GM.add_animation(player_visual_y_anim)
+        else:
+            # Normal player turn damage - use move_player
+            def on_damage_complete():
+                self.sync_visual_offset()
+                self.is_moving = False
+
+            move_player(self, new_x, new_y, duration_frames=8, on_complete_callback=on_damage_complete)
 
         self.start_damage_flash()
         GM.hud_manager.update_health(self.current_health)
@@ -342,6 +398,12 @@ class Player(Entity):
         self.rect = self.image.get_rect()
         self.rect.centerx = center_x + pixel_offset_x
         self.rect.centery = center_y + pixel_offset_y
+
+        if self.is_moving:
+            if self.is_moving:
+                print(
+                    f"grid=({self.grid_x},{self.grid_y}), offset=({self.offset_x_visual:.3f},{self.offset_y_visual:.3f}),"
+                    f" pixel=({pixel_offset_x:.1f},{pixel_offset_y:.1f})")
 
     @staticmethod
     def game_over():

@@ -234,7 +234,6 @@ while True:
 
 """TODO: 
 animation is buggy again
-player.can_perform_action counts diagonals
 
 FEATURES TO ADD:
 - Equipment system with different attack patterns
